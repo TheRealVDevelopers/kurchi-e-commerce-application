@@ -1,10 +1,12 @@
-
 import { useState } from 'react';
-import { Search, ShoppingCart, Heart, User, Menu, Star, ArrowRight, X } from 'lucide-react';
+import { Search, ShoppingCart, Heart, User, Star, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import MobileNavigation from '@/components/MobileNavigation';
+import HeroSlider from '@/components/HeroSlider';
 
 const Index = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -64,25 +66,25 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50 pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-white shadow-lg sticky top-0 z-50 border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center">
+            <Link to="/" className="flex items-center">
               <div className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
                 🪑 KURCHI
               </div>
-            </div>
+            </Link>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8">
-              <a href="#" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Home</a>
-              <a href="#" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Categories</a>
-              <a href="#" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">New Arrivals</a>
-              <a href="#" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Offers</a>
-              <a href="#" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">About</a>
+              <Link to="/" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Home</Link>
+              <Link to="/categories" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Categories</Link>
+              <Link to="/new-arrivals" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">New Arrivals</Link>
+              <Link to="/offers" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Offers</Link>
+              <Link to="/about" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">About</Link>
             </nav>
 
             {/* Search Bar */}
@@ -98,104 +100,33 @@ const Index = () => {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-amber-700">
-                <Heart className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="relative text-stone-600 hover:text-amber-700">
-                <ShoppingCart className="h-5 w-5" />
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-amber-600">
-                  3
-                </Badge>
-              </Button>
-              <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-amber-700">
-                <User className="h-5 w-5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="md:hidden text-stone-600"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
+              <Link to="/wishlist">
+                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-amber-700">
+                  <Heart className="h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/cart">
+                <Button variant="ghost" size="sm" className="relative text-stone-600 hover:text-amber-700">
+                  <ShoppingCart className="h-5 w-5" />
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-amber-600">
+                    3
+                  </Badge>
+                </Button>
+              </Link>
+              <Link to="/profile">
+                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-amber-700">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden bg-white border-t border-stone-200 shadow-lg">
-            <div className="px-4 py-4 space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-4 w-4" />
-                <Input placeholder="Search chairs, sofas..." className="pl-10 border-stone-300" />
-              </div>
-              <nav className="space-y-3">
-                <a href="#" className="block py-2 text-stone-700 font-medium">Home</a>
-                <a href="#" className="block py-2 text-stone-700 font-medium">Categories</a>
-                <a href="#" className="block py-2 text-stone-700 font-medium">New Arrivals</a>
-                <a href="#" className="block py-2 text-stone-700 font-medium">Offers</a>
-                <a href="#" className="block py-2 text-stone-700 font-medium">About</a>
-              </nav>
-              <div className="flex space-x-4 pt-3 border-t border-stone-200">
-                <Button variant="ghost" size="sm" className="flex-1 text-stone-600">
-                  <Heart className="h-4 w-4 mr-2" />
-                  Wishlist
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1 text-stone-600">
-                  <User className="h-4 w-4 mr-2" />
-                  Account
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </header>
 
-      {/* Hero Section */}
-      <section className="relative h-[500px] bg-gradient-to-r from-amber-50 to-orange-50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-          <div className="grid lg:grid-cols-2 gap-12 items-center w-full">
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">
-                  New Collection 2024
-                </Badge>
-                <h1 className="text-4xl lg:text-6xl font-bold text-stone-900 leading-tight">
-                  Premium
-                  <span className="block bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
-                    Furniture
-                  </span>
-                  for Modern Living
-                </h1>
-                <p className="text-xl text-stone-600 max-w-lg">
-                  Discover our curated collection of chairs, sofas, and seating solutions designed for comfort and style.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-amber-700 hover:bg-amber-800 text-white">
-                  Shop Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button variant="outline" size="lg" className="border-amber-700 text-amber-700 hover:bg-amber-50">
-                  View Categories
-                </Button>
-              </div>
-            </div>
-            <div className="hidden lg:block">
-              <div className="relative">
-                <img 
-                  src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&h=400&fit=crop&crop=center" 
-                  alt="Premium Chair" 
-                  className="w-full h-96 object-cover rounded-2xl shadow-2xl transform hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute -bottom-4 -right-4 bg-white p-4 rounded-xl shadow-lg">
-                  <div className="text-2xl font-bold text-amber-700">₹15,999</div>
-                  <div className="text-sm text-stone-500">Starting from</div>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Hero Section with Slider */}
+      <section className="relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <HeroSlider />
         </div>
       </section>
 
@@ -209,20 +140,22 @@ const Index = () => {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             {categories.map((category, index) => (
-              <Card key={index} className="group cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-stone-200">
-                <CardContent className="p-6 text-center">
-                  <div className="relative mb-4">
-                    <img 
-                      src={category.image} 
-                      alt={category.name}
-                      className="w-full h-32 object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </div>
-                  <h3 className="font-semibold text-lg text-stone-900 mb-2">{category.name}</h3>
-                  <p className="text-stone-600">{category.count} Products</p>
-                </CardContent>
-              </Card>
+              <Link to="/categories" key={index}>
+                <Card className="group cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-stone-200">
+                  <CardContent className="p-6 text-center">
+                    <div className="relative mb-4">
+                      <img 
+                        src={category.image} 
+                        alt={category.name}
+                        className="w-full h-32 object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </div>
+                    <h3 className="font-semibold text-lg text-stone-900 mb-2">{category.name}</h3>
+                    <p className="text-stone-600">{category.count} Products</p>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
@@ -281,10 +214,12 @@ const Index = () => {
           </div>
 
           <div className="text-center mt-12">
-            <Button variant="outline" size="lg" className="border-amber-700 text-amber-700 hover:bg-amber-50">
-              View All Products
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link to="/categories">
+              <Button variant="outline" size="lg" className="border-amber-700 text-amber-700 hover:bg-amber-50">
+                View All Products
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -348,28 +283,28 @@ const Index = () => {
             <div>
               <h3 className="font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2 text-stone-400">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Shipping Info</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Returns</a></li>
+                <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+                <li><Link to="/shipping" className="hover:text-white transition-colors">Shipping Info</Link></li>
+                <li><Link to="/returns" className="hover:text-white transition-colors">Returns</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Categories</h3>
               <ul className="space-y-2 text-stone-400">
-                <li><a href="#" className="hover:text-white transition-colors">Office Chairs</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Sofas</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Recliners</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Bean Bags</a></li>
+                <li><Link to="/categories" className="hover:text-white transition-colors">Office Chairs</Link></li>
+                <li><Link to="/categories" className="hover:text-white transition-colors">Sofas</Link></li>
+                <li><Link to="/categories" className="hover:text-white transition-colors">Recliners</Link></li>
+                <li><Link to="/categories" className="hover:text-white transition-colors">Bean Bags</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Support</h3>
               <ul className="space-y-2 text-stone-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Track Order</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Product Request</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Bulk Orders</a></li>
+                <li><Link to="/help" className="hover:text-white transition-colors">Help Center</Link></li>
+                <li><Link to="/track" className="hover:text-white transition-colors">Track Order</Link></li>
+                <li><Link to="/request" className="hover:text-white transition-colors">Product Request</Link></li>
+                <li><Link to="/bulk" className="hover:text-white transition-colors">Bulk Orders</Link></li>
               </ul>
             </div>
           </div>
@@ -378,6 +313,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Navigation */}
+      <MobileNavigation />
     </div>
   );
 };
