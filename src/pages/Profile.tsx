@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { User, Heart, ShoppingCart, MapPin, CreditCard, Settings, Package, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
 
   const menuItems = [
@@ -60,6 +61,20 @@ const Profile = () => {
                       {item.label}
                     </Button>
                   ))}
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => navigate('/admin')}
+                  >
+                    Admin Dashboard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => navigate('/super-admin')}
+                  >
+                    Super Admin Dashboard
+                  </Button>
                 </nav>
               </CardContent>
             </Card>
