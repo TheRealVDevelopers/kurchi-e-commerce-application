@@ -142,10 +142,10 @@ const CustomerSupport = () => {
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-semibold text-sm">{request.customerName}</h4>
                   <div className="flex gap-1">
-                    <Badge className={getPriorityColor(request.priority)} size="sm">
+                    <Badge className={getPriorityColor(request.priority)}>
                       {request.priority}
                     </Badge>
-                    <Badge className={getStatusColor(request.status)} size="sm">
+                    <Badge className={getStatusColor(request.status)}>
                       {request.status}
                     </Badge>
                   </div>
