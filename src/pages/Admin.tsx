@@ -13,40 +13,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
 import CustomerSupport from '@/components/CustomerSupport';
+import { useApp } from '@/context/AppContext';
 
 const Admin = () => {
-  const [productRequests, setProductRequests] = useState([
-    {
-      id: 1,
-      name: 'Ergonomic Office Chair',
-      category: 'office',
-      price: 25999,
-      description: 'Premium ergonomic office chair with lumbar support',
-      image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=300&h=200&fit=crop',
-      status: 'pending',
-      requestedAt: '2024-06-01T10:00:00Z'
-    },
-    {
-      id: 2,
-      name: 'Luxury Sofa Set',
-      category: 'sofas',
-      price: 89999,
-      description: 'Premium 3-seater sofa with premium fabric',
-      image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&h=200&fit=crop',
-      status: 'approved',
-      requestedAt: '2024-05-30T14:30:00Z'
-    },
-    {
-      id: 3,
-      name: 'Recliner Chair',
-      category: 'recliners',
-      price: 45999,
-      description: 'Electric recliner with massage function',
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
-      status: 'rejected',
-      requestedAt: '2024-05-29T09:15:00Z'
-    }
-  ]);
+  /* 
+     REFACTORING NOTE:
+     We are removing the local 'productRequests' state and 'newProduct' logic here
+     and replacing it with the AppContext consumption. 
+  */
+  const { user, productRequests, addProductRequest } = useApp();
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -60,15 +35,15 @@ const Admin = () => {
 
   const handleSubmitRequest = () => {
     if (!newProduct.name || !newProduct.category || !newProduct.price) return;
-    
-    const request = {
-      id: Date.now(),
-      ...newProduct,
+
+    addProductRequest({
+      name: newProduct.name,
+      category: newProduct.category,
       price: parseInt(newProduct.price),
-      status: 'pending',
-      requestedAt: new Date().toISOString()
-    };
-    setProductRequests([request, ...productRequests]);
+      description: newProduct.description,
+      image: newProduct.image || 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop' // default image if empty
+    });
+
     setNewProduct({ name: '', category: '', price: '', description: '', image: '' });
     setIsDialogOpen(false);
   };
@@ -99,6 +74,10 @@ const Admin = () => {
     }
   };
 
+  // Filter requests for the current admin if you want (but for now show all)
+  // Or maybe filter only ones created by THIS admin? 
+  // For simplicity, let's show all requests so they can see status updates.
+
   const pendingCount = productRequests.filter(req => req.status === 'pending').length;
   const approvedCount = productRequests.filter(req => req.status === 'approved').length;
   const rejectedCount = productRequests.filter(req => req.status === 'rejected').length;
@@ -106,13 +85,15 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent mb-2">
             Admin Dashboard
           </h1>
-          <p className="text-stone-600 text-lg">Manage product requests and customer support</p>
+          <p className="text-stone-600 text-lg">
+            Welcome back, {user?.name}. Manage product requests and support.
+          </p>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -178,12 +159,89 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button className="h-20 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
-                    <div className="text-center">
-                      <Plus className="h-6 w-6 mx-auto mb-2" />
-                      <span>Add New Product</span>
-                    </div>
-                  </Button>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="h-20 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                        <div className="text-center">
+                          <Plus className="h-6 w-6 mx-auto mb-2" />
+                          <span>Add New Product</span>
+                        </div>
+                      </Button>
+                    </DialogTrigger>
+                    {/* Reusing the same dialog content logic here would be redundant code if not careful, 
+                        but effectively we want this button to open the SAME dialog as the one in the Products tab.
+                        For simplicity in this step, let's just make it switch tabs or duplicate the dialog trigger logic.
+                        Actually, let's just render the dialog content again here or keep it simple.
+                        Correction: The original code didn't have the dialog WRAPPED around this button.
+                        I will just make this button switch tab to 'products' ideally, but I can't easily control tabs state from here without more state.
+                        I'll leave it as a direct trigger for now.
+                     */}
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>New Product Request</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="quick-name">Product Name</Label>
+                          <Input
+                            id="quick-name"
+                            value={newProduct.name}
+                            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                            placeholder="Enter product name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="quick-category">Category</Label>
+                          <Select value={newProduct.category} onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="office">Office Chairs</SelectItem>
+                              <SelectItem value="sofas">Sofas</SelectItem>
+                              <SelectItem value="recliners">Recliners</SelectItem>
+                              <SelectItem value="beanbags">Bean Bags</SelectItem>
+                              <SelectItem value="dining">Dining Chairs</SelectItem>
+                              <SelectItem value="lounge">Lounge Chairs</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="quick-price">Price (₹)</Label>
+                          <Input
+                            id="quick-price"
+                            type="number"
+                            value={newProduct.price}
+                            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                            placeholder="Enter price"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="quick-image">Image URL</Label>
+                          <Input
+                            id="quick-image"
+                            value={newProduct.image}
+                            onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
+                            placeholder="Enter image URL"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="quick-description">Description</Label>
+                          <Textarea
+                            id="quick-description"
+                            value={newProduct.description}
+                            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                            placeholder="Enter product description"
+                          />
+                        </div>
+                        <Button onClick={handleSubmitRequest} className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                          <Send className="h-4 w-4 mr-2" />
+                          Submit Request
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
                   <Button variant="outline" className="h-20">
                     <div className="text-center">
                       <AlertCircle className="h-6 w-6 mx-auto mb-2" />
@@ -226,13 +284,13 @@ const Admin = () => {
                         <Input
                           id="name"
                           value={newProduct.name}
-                          onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                           placeholder="Enter product name"
                         />
                       </div>
                       <div>
                         <Label htmlFor="category">Category</Label>
-                        <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
+                        <Select value={newProduct.category} onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
@@ -252,7 +310,7 @@ const Admin = () => {
                           id="price"
                           type="number"
                           value={newProduct.price}
-                          onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
                           placeholder="Enter price"
                         />
                       </div>
@@ -261,7 +319,7 @@ const Admin = () => {
                         <Input
                           id="image"
                           value={newProduct.image}
-                          onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
+                          onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
                           placeholder="Enter image URL"
                         />
                       </div>
@@ -270,7 +328,7 @@ const Admin = () => {
                         <Textarea
                           id="description"
                           value={newProduct.description}
-                          onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                          onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                           placeholder="Enter product description"
                         />
                       </div>
@@ -295,8 +353,8 @@ const Admin = () => {
                   {productRequests.map((request) => (
                     <div key={request.id} className="flex items-center justify-between p-6 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center space-x-4">
-                        <img 
-                          src={request.image} 
+                        <img
+                          src={request.image}
                           alt={request.name}
                           className="w-20 h-20 object-cover rounded-lg border"
                         />

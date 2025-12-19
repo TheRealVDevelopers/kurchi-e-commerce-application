@@ -9,20 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
+import { useApp } from '@/context/AppContext';
 
 const SuperAdmin = () => {
-  const [pendingRequests, setPendingRequests] = useState([
-    {
-      id: 1,
-      name: 'Ergonomic Office Chair',
-      category: 'office',
-      price: 25999,
-      description: 'Premium ergonomic office chair with lumbar support',
-      image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=300&h=200&fit=crop',
-      adminName: 'John Admin',
-      requestedAt: '2024-06-01T10:00:00Z'
-    }
-  ]);
+  const { user, productRequests, updateRequestStatus } = useApp();
+
+  // Filter pending requests from the shared context
+  const pendingRequests = productRequests.filter(req => req.status === 'pending');
 
   const salesData = [
     { month: 'Jan', sales: 1200000, orders: 45, customers: 120 },
@@ -59,23 +52,25 @@ const SuperAdmin = () => {
   ];
 
   const handleApproveRequest = (id: number) => {
-    setPendingRequests(prev => prev.filter(req => req.id !== id));
+    updateRequestStatus(id, 'approved');
   };
 
   const handleRejectRequest = (id: number) => {
-    setPendingRequests(prev => prev.filter(req => req.id !== id));
+    updateRequestStatus(id, 'rejected');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-700 via-orange-600 to-red-600 bg-clip-text text-transparent mb-2">
             Super Admin Dashboard
           </h1>
-          <p className="text-stone-600 text-lg">Monitor sales, manage products, and approve admin requests</p>
+          <p className="text-stone-600 text-lg">
+            Welcome, {user?.name}. Monitor sales, manage products, and approve admin requests
+          </p>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -289,8 +284,8 @@ const SuperAdmin = () => {
                     {pendingRequests.map((request) => (
                       <div key={request.id} className="flex items-center justify-between p-6 border rounded-xl bg-white shadow-sm">
                         <div className="flex items-center space-x-4">
-                          <img 
-                            src={request.image} 
+                          <img
+                            src={request.image}
                             alt={request.name}
                             className="w-20 h-20 object-cover rounded-lg border"
                           />
@@ -321,16 +316,16 @@ const SuperAdmin = () => {
                                   <p className="text-xl font-bold text-amber-700">₹{request.price.toLocaleString()}</p>
                                 </div>
                                 <div className="flex space-x-2">
-                                  <Button 
+                                  <Button
                                     onClick={() => handleApproveRequest(request.id)}
                                     className="bg-green-600 hover:bg-green-700 flex-1"
                                   >
                                     <CheckCircle className="h-4 w-4 mr-2" />
                                     Approve
                                   </Button>
-                                  <Button 
+                                  <Button
                                     onClick={() => handleRejectRequest(request.id)}
-                                    variant="destructive" 
+                                    variant="destructive"
                                     className="flex-1"
                                   >
                                     <XCircle className="h-4 w-4 mr-2" />
