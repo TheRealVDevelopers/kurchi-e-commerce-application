@@ -25,14 +25,14 @@ const MobileNavigation = () => {
               to={item.path}
               className={cn(
                 "flex flex-col items-center py-2 px-3 min-w-0 flex-1",
-                isActive 
-                  ? "text-amber-700" 
-                  : "text-stone-500 hover:text-amber-700"
+                isActive
+                  ? "text-bright-red-700"
+                  : "text-stone-500 hover:text-bright-red-700"
               )}
             >
               <item.icon className={cn(
                 "h-5 w-5 mb-1",
-                isActive && "fill-amber-100"
+                isActive && "fill-bright-red-100"
               )} />
               <span className="text-xs font-medium truncate">{item.label}</span>
             </Link>

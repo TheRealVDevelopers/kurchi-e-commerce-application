@@ -40,7 +40,7 @@ const NewArrivals = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -55,14 +55,14 @@ const NewArrivals = () => {
           {newProducts.map((product) => (
             <Card key={product.id} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
               <div className="relative">
-                <img 
-                  src={product.image} 
+                <img
+                  src={product.image}
                   alt={product.name}
                   className="w-full h-80 object-cover rounded-t-lg group-hover:scale-110 transition-transform duration-500"
                 />
                 <Badge className="absolute top-3 left-3 bg-green-600 hover:bg-green-700">NEW</Badge>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="ghost"
                   className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-stone-100"
                 >
@@ -83,7 +83,7 @@ const NewArrivals = () => {
                   <span className="text-lg text-stone-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
                 </div>
                 <p className="text-sm text-stone-500 mb-4">Arrived: {new Date(product.arrivalDate).toLocaleDateString()}</p>
-                <Button className="w-full bg-amber-700 hover:bg-amber-800 text-white">
+                <Button className="w-full bg-bright-red-700 hover:bg-bright-red-800 text-white">
                   Add to Cart
                 </Button>
               </CardContent>

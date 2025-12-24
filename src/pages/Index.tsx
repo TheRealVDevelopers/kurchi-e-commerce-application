@@ -66,34 +66,34 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50 pb-20 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50 pb-20 md:pb-0">
       {/* Header */}
       <header className="bg-white shadow-lg sticky top-0 z-50 border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center">
-              <div className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
+              <div className="text-2xl font-bold bg-gradient-to-r from-bright-red-700 to-bright-red-700 bg-clip-text text-transparent">
                 🪑 KURCHI
               </div>
             </Link>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8">
-              <Link to="/" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Home</Link>
-              <Link to="/categories" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Categories</Link>
-              <Link to="/new-arrivals" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">New Arrivals</Link>
-              <Link to="/offers" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">Offers</Link>
-              <Link to="/about" className="text-stone-700 hover:text-amber-700 transition-colors font-medium">About</Link>
+              <Link to="/" className="text-stone-700 hover:text-bright-red-700 transition-colors font-medium">Home</Link>
+              <Link to="/categories" className="text-stone-700 hover:text-bright-red-700 transition-colors font-medium">Categories</Link>
+              <Link to="/new-arrivals" className="text-stone-700 hover:text-bright-red-700 transition-colors font-medium">New Arrivals</Link>
+              <Link to="/offers" className="text-stone-700 hover:text-bright-red-700 transition-colors font-medium">Offers</Link>
+              <Link to="/about" className="text-stone-700 hover:text-bright-red-700 transition-colors font-medium">About</Link>
             </nav>
 
             {/* Search Bar */}
             <div className="hidden md:flex items-center max-w-md w-full mx-8">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-4 w-4" />
-                <Input 
-                  placeholder="Search chairs, sofas..." 
-                  className="pl-10 pr-4 w-full border-stone-300 focus:border-amber-500"
+                <Input
+                  placeholder="Search chairs, sofas..."
+                  className="pl-10 pr-4 w-full border-stone-300 focus:border-bright-red-500"
                 />
               </div>
             </div>
@@ -101,20 +101,20 @@ const Index = () => {
             {/* Action Buttons */}
             <div className="flex items-center space-x-3">
               <Link to="/wishlist">
-                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-amber-700">
+                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-bright-red-700">
                   <Heart className="h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/cart">
-                <Button variant="ghost" size="sm" className="relative text-stone-600 hover:text-amber-700">
+                <Button variant="ghost" size="sm" className="relative text-stone-600 hover:text-bright-red-700">
                   <ShoppingCart className="h-5 w-5" />
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-amber-600">
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-bright-red-600">
                     3
                   </Badge>
                 </Button>
               </Link>
               <Link to="/profile">
-                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-amber-700">
+                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-bright-red-700">
                   <User className="h-5 w-5" />
                 </Button>
               </Link>
@@ -144,8 +144,8 @@ const Index = () => {
                 <Card className="group cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-stone-200">
                   <CardContent className="p-6 text-center">
                     <div className="relative mb-4">
-                      <img 
-                        src={category.image} 
+                      <img
+                        src={category.image}
                         alt={category.name}
                         className="w-full h-32 object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
                       />
@@ -162,7 +162,7 @@ const Index = () => {
       </section>
 
       {/* Featured Products */}
-      <section className="py-16 bg-gradient-to-br from-stone-50 to-amber-50">
+      <section className="py-16 bg-gradient-to-br from-stone-50 to-bright-red-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-stone-900 mb-4">Featured Products</h2>
@@ -173,20 +173,20 @@ const Index = () => {
             {featuredProducts.map((product) => (
               <Card key={product.id} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border-stone-200">
                 <div className="relative">
-                  <img 
-                    src={product.image} 
+                  <img
+                    src={product.image}
                     alt={product.name}
                     className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  <Badge className="absolute top-3 left-3 bg-amber-700 hover:bg-amber-800">
+                  <Badge className="absolute top-3 left-3 bg-bright-red-700 hover:bg-bright-red-800">
                     {product.badge}
                   </Badge>
                   <Badge className="absolute top-3 right-3 bg-green-600 hover:bg-green-700">
                     {product.discount}
                   </Badge>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white text-stone-900 hover:bg-stone-100"
                   >
                     <Heart className="h-4 w-4" />
@@ -205,7 +205,7 @@ const Index = () => {
                     <span className="text-2xl font-bold text-stone-900">₹{product.price.toLocaleString()}</span>
                     <span className="text-lg text-stone-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
                   </div>
-                  <Button className="w-full bg-amber-700 hover:bg-amber-800 text-white">
+                  <Button className="w-full bg-bright-red-700 hover:bg-bright-red-800 text-white">
                     Add to Cart
                   </Button>
                 </CardContent>
@@ -215,7 +215,7 @@ const Index = () => {
 
           <div className="text-center mt-12">
             <Link to="/categories">
-              <Button variant="outline" size="lg" className="border-amber-700 text-amber-700 hover:bg-amber-50">
+              <Button variant="outline" size="lg" className="border-bright-red-700 text-bright-red-700 hover:bg-bright-red-50">
                 View All Products
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -237,8 +237,8 @@ const Index = () => {
               </p>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <div className="bg-amber-100 p-2 rounded-lg">
-                    <Search className="h-5 w-5 text-amber-700" />
+                  <div className="bg-bright-red-100 p-2 rounded-lg">
+                    <Search className="h-5 w-5 text-bright-red-700" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-stone-900">Describe Your Needs</h3>
@@ -246,8 +246,8 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="bg-amber-100 p-2 rounded-lg">
-                    <Star className="h-5 w-5 text-amber-700" />
+                  <div className="bg-bright-red-100 p-2 rounded-lg">
+                    <Star className="h-5 w-5 text-bright-red-700" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-stone-900">Get Personalized Suggestions</h3>
@@ -255,14 +255,14 @@ const Index = () => {
                   </div>
                 </div>
               </div>
-              <Button size="lg" className="mt-8 bg-amber-700 hover:bg-amber-800 text-white">
+              <Button size="lg" className="mt-8 bg-bright-red-700 hover:bg-bright-red-800 text-white">
                 Submit Product Request
               </Button>
             </div>
             <div className="relative">
-              <img 
-                src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=400&fit=crop&crop=center" 
-                alt="Custom Furniture" 
+              <img
+                src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=400&fit=crop&crop=center"
+                alt="Custom Furniture"
                 className="w-full h-96 object-cover rounded-2xl shadow-2xl"
               />
             </div>

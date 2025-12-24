@@ -83,12 +83,12 @@ const Admin = () => {
   const rejectedCount = productRequests.filter(req => req.status === 'rejected').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
       <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-bright-red-700 to-bright-red-800 bg-clip-text text-transparent mb-2">
             Admin Dashboard
           </h1>
           <p className="text-stone-600 text-lg">
@@ -161,7 +161,7 @@ const Admin = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="h-20 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                      <Button className="h-20 bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800 shadow-md transform transition hover:scale-105">
                         <div className="text-center">
                           <Plus className="h-6 w-6 mx-auto mb-2" />
                           <span>Add New Product</span>
@@ -234,7 +234,7 @@ const Admin = () => {
                             placeholder="Enter product description"
                           />
                         </div>
-                        <Button onClick={handleSubmitRequest} className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                        <Button onClick={handleSubmitRequest} className="w-full bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800">
                           <Send className="h-4 w-4 mr-2" />
                           Submit Request
                         </Button>
@@ -261,15 +261,15 @@ const Admin = () => {
 
           <TabsContent value="products" className="space-y-6">
             {/* Add Product Request */}
-            <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+            <Card className="bg-gradient-to-r from-bright-red-50 to-bright-red-50 border-bright-red-200">
               <CardHeader>
-                <CardTitle className="text-amber-800">Request New Product</CardTitle>
+                <CardTitle className="text-bright-red-800">Request New Product</CardTitle>
                 <CardDescription>Submit a new product request to Super Admin for approval</CardDescription>
               </CardHeader>
               <CardContent>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                    <Button className="bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800">
                       <Plus className="h-4 w-4 mr-2" />
                       Request New Product
                     </Button>
@@ -332,7 +332,7 @@ const Admin = () => {
                           placeholder="Enter product description"
                         />
                       </div>
-                      <Button onClick={handleSubmitRequest} className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700">
+                      <Button onClick={handleSubmitRequest} className="w-full bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800">
                         <Send className="h-4 w-4 mr-2" />
                         Submit Request
                       </Button>
@@ -361,7 +361,7 @@ const Admin = () => {
                         <div>
                           <h3 className="font-semibold text-lg text-stone-800">{request.name}</h3>
                           <p className="text-sm text-stone-600 mt-1">{request.description}</p>
-                          <p className="text-xl font-bold text-amber-700 mt-2">₹{request.price.toLocaleString()}</p>
+                          <p className="text-xl font-bold text-bright-red-700 mt-2">₹{request.price.toLocaleString()}</p>
                           <p className="text-xs text-stone-500 mt-1">
                             Requested on {new Date(request.requestedAt).toLocaleDateString()}
                           </p>

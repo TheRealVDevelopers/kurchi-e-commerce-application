@@ -27,7 +27,7 @@ const SuperAdmin = () => {
   ];
 
   const productCategories = [
-    { name: 'Office Chairs', value: 35, color: '#D97706' },
+    { name: 'Office Chairs', value: 35, color: '#FF6347' },
     { name: 'Sofas', value: 25, color: '#059669' },
     { name: 'Recliners', value: 20, color: '#7C3AED' },
     { name: 'Dining', value: 12, color: '#DC2626' },
@@ -60,12 +60,12 @@ const SuperAdmin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-tomato-50 to-tomato-50">
       <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-700 via-orange-600 to-red-600 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-tomato-700 via-tomato-600 to-red-600 bg-clip-text text-transparent mb-2">
             Super Admin Dashboard
           </h1>
           <p className="text-stone-600 text-lg">
@@ -126,14 +126,14 @@ const SuperAdmin = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-orange-500 bg-gradient-to-br from-orange-50 to-amber-50">
+              <Card className="border-l-4 border-l-bright-red-500 bg-gradient-to-br from-bright-red-50 to-bright-red-50">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
-                  <Award className="h-4 w-4 text-orange-600" />
+                  <Award className="h-4 w-4 text-bright-red-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-700">{pendingRequests.length}</div>
-                  <p className="text-xs text-orange-600">Awaiting approval</p>
+                  <div className="text-2xl font-bold text-bright-red-700">{pendingRequests.length}</div>
+                  <p className="text-xs text-bright-red-600">Awaiting approval</p>
                 </CardContent>
               </Card>
             </div>
@@ -152,7 +152,7 @@ const SuperAdmin = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Area type="monotone" dataKey="revenue" stackId="1" stroke="#D97706" fill="#FED7AA" name="Revenue (₹)" />
+                    <Area type="monotone" dataKey="revenue" stackId="1" stroke="#FF0000" fill="#ffe4e1" name="Revenue (₹)" />
                     <Area type="monotone" dataKey="orders" stackId="2" stroke="#059669" fill="#A7F3D0" name="Orders" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -177,7 +177,7 @@ const SuperAdmin = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="sales" fill="#D97706" name="Sales (₹)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="sales" fill="#FF6347" name="Sales (₹)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -246,8 +246,8 @@ const SuperAdmin = () => {
                   {topProducts.map((product, index) => (
                     <div key={index} className="flex items-center justify-between p-6 border rounded-xl bg-gradient-to-r from-white to-stone-50 shadow-sm hover:shadow-md transition-all">
                       <div className="flex items-center space-x-4">
-                        <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full">
-                          <span className="text-lg font-bold text-amber-700">#{index + 1}</span>
+                        <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-tomato-100 to-tomato-200 rounded-full">
+                          <span className="text-lg font-bold text-tomato-700">#{index + 1}</span>
                         </div>
                         <div>
                           <h3 className="font-semibold text-lg text-stone-800">{product.name}</h3>
@@ -274,63 +274,48 @@ const SuperAdmin = () => {
           <TabsContent value="requests" className="space-y-6">
             {/* Pending Product Requests */}
             {pendingRequests.length > 0 ? (
-              <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
+              <Card className="border-bright-red-200 bg-gradient-to-r from-bright-red-50 to-bright-red-50">
                 <CardHeader>
-                  <CardTitle className="text-amber-800">Pending Product Requests</CardTitle>
+                  <CardTitle className="text-bright-red-800">Pending Product Requests</CardTitle>
                   <CardDescription>Review and approve/reject product requests from admins</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {pendingRequests.map((request) => (
-                      <div key={request.id} className="flex items-center justify-between p-6 border rounded-xl bg-white shadow-sm">
-                        <div className="flex items-center space-x-4">
-                          <img
-                            src={request.image}
-                            alt={request.name}
-                            className="w-20 h-20 object-cover rounded-lg border"
-                          />
-                          <div>
-                            <h3 className="font-semibold text-lg text-stone-800">{request.name}</h3>
-                            <p className="text-sm text-stone-600 mt-1">{request.description}</p>
-                            <p className="text-xl font-bold text-amber-700 mt-2">₹{request.price.toLocaleString()}</p>
-                            <p className="text-xs text-stone-500 mt-1">Requested by: {request.adminName}</p>
-                          </div>
+                      <div key={request.id} className="flex flex-col md:flex-row items-center gap-4 p-4 bg-white rounded-xl shadow-sm border border-stone-100">
+                        <img src={request.image} alt={request.name} className="w-20 h-20 object-cover rounded-lg" />
+                        <div className="flex-1">
+                          <h3 className="font-bold text-stone-900">{request.name}</h3>
+                          <p className="text-sm text-stone-500">{request.category}</p>
+                          <p className="text-xl font-bold text-bright-red-700 mt-2">₹{request.price.toLocaleString()}</p>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex gap-2">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="border-amber-200 hover:bg-amber-50">
-                                <Eye className="h-4 w-4 mr-2" />
-                                Review
+                              <Button variant="outline" size="sm" className="border-bright-red-200 hover:bg-bright-red-50">
+                                View Details
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle>Product Request Details</DialogTitle>
+                                <DialogTitle>Request Details</DialogTitle>
                               </DialogHeader>
-                              <div className="space-y-4">
-                                <img src={request.image} alt={request.name} className="w-full h-48 object-cover rounded-lg" />
-                                <div>
-                                  <h3 className="text-lg font-semibold">{request.name}</h3>
+                              <div className="grid md:grid-cols-2 gap-6 pt-4">
+                                <img src={request.image} alt={request.name} className="w-full h-64 object-cover rounded-xl" />
+                                <div className="space-y-4">
+                                  <div>
+                                    <h3 className="text-2xl font-bold text-stone-900">{request.name}</h3>
+                                    <p className="text-bright-red-600 font-medium">{request.category}</p>
+                                  </div>
                                   <p className="text-stone-600">{request.description}</p>
-                                  <p className="text-xl font-bold text-amber-700">₹{request.price.toLocaleString()}</p>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <Button
-                                    onClick={() => handleApproveRequest(request.id)}
-                                    className="bg-green-600 hover:bg-green-700 flex-1"
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Approve
-                                  </Button>
-                                  <Button
-                                    onClick={() => handleRejectRequest(request.id)}
-                                    variant="destructive"
-                                    className="flex-1"
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Reject
-                                  </Button>
+                                  <div className="pt-4 border-t">
+                                    <p className="text-sm text-stone-500 mb-1">Proposed Price</p>
+                                    <p className="text-xl font-bold text-bright-red-700">₹{request.price.toLocaleString()}</p>
+                                  </div>
+                                  <div className="flex gap-3 pt-4">
+                                    <Button className="flex-1 bg-green-600 hover:bg-green-700">Approve</Button>
+                                    <Button className="flex-1 bg-red-600 hover:bg-red-700">Reject</Button>
+                                  </div>
                                 </div>
                               </div>
                             </DialogContent>

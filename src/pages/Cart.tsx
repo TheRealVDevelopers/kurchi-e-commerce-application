@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import MobileNavigation from '@/components/MobileNavigation';
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState([
@@ -53,12 +54,12 @@ const Cart = () => {
   const total = subtotal + shipping;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
       {/* Header */}
       <header className="bg-white shadow-lg sticky top-0 z-40 border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="text-2xl font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
+            <div className="text-2xl font-bold bg-gradient-to-r from-bright-red-700 to-bright-red-700 bg-clip-text text-transparent">
               🪑 KURCHI
             </div>
             <div className="flex items-center space-x-3">
@@ -67,7 +68,7 @@ const Cart = () => {
               </Button>
               <Button variant="ghost" size="sm" className="relative">
                 <ShoppingCart className="h-5 w-5" />
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-amber-600">
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-bright-red-600">
                   {cartItems.reduce((sum, item) => sum + item.quantity, 0)}
                 </Badge>
               </Button>
@@ -78,7 +79,7 @@ const Cart = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-stone-900 mb-8">Shopping Cart</h1>
-        
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
@@ -86,8 +87,8 @@ const Cart = () => {
               <Card key={item.id}>
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row gap-4">
-                    <img 
-                      src={item.image} 
+                    <img
+                      src={item.image}
                       alt={item.name}
                       className="w-full md:w-32 h-32 object-cover rounded-lg"
                     />
@@ -119,8 +120,8 @@ const Cart = () => {
                           <Button variant="ghost" size="sm">
                             <Heart className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => removeItem(item.id)}
                             className="text-red-600 hover:text-red-700"
@@ -141,7 +142,7 @@ const Cart = () => {
             <Card className="sticky top-24">
               <CardContent className="p-6">
                 <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-                
+
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
@@ -163,7 +164,7 @@ const Cart = () => {
                   <Button variant="outline" className="w-full">Apply Coupon</Button>
                 </div>
 
-                <Button className="w-full bg-amber-700 hover:bg-amber-800 text-white text-lg py-3">
+                <Button className="w-full bg-tomato-700 hover:bg-tomato-800 text-white text-lg py-3">
                   Proceed to Checkout
                 </Button>
               </CardContent>
@@ -171,6 +172,7 @@ const Cart = () => {
           </div>
         </div>
       </div>
+      <MobileNavigation />
     </div>
   );
 };

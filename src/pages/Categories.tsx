@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
+import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 const Categories = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -67,12 +69,12 @@ const Categories = () => {
     }
   ];
 
-  const filteredProducts = selectedCategory === 'all' 
-    ? products 
+  const filteredProducts = selectedCategory === 'all'
+    ? products
     : products.filter(product => product.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50 pb-20 md:pb-0">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -86,9 +88,9 @@ const Categories = () => {
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-400 h-4 w-4" />
-            <Input placeholder="Search furniture..." className="pl-10" />
+            <Input placeholder="Search furniture..." className="pl-10 h-11" />
           </div>
-          <Button variant="outline" className="border-amber-700 text-amber-700">
+          <Button variant="outline" className="border-stone-200 hover:bg-stone-50 text-stone-700 h-11">
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
@@ -102,10 +104,12 @@ const Categories = () => {
               variant={selectedCategory === category.id ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory(category.id)}
-              className={selectedCategory === category.id 
-                ? "bg-amber-700 hover:bg-amber-800" 
-                : "border-stone-300 hover:border-amber-700"
-              }
+              className={cn(
+                "rounded-full px-6",
+                selectedCategory === category.id
+                  ? "bg-bright-red-700 hover:bg-bright-red-800 text-white border-0"
+                  : "border-stone-200 hover:border-bright-red-700 text-stone-600 hover:text-bright-red-700"
+              )}
             >
               {category.name}
             </Button>
@@ -115,36 +119,44 @@ const Categories = () => {
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="group cursor-pointer hover:shadow-xl transition-all duration-300">
-              <div className="relative">
-                <img 
-                  src={product.image} 
+            <Card key={product.id} className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-stone-100 overflow-hidden">
+              <div className="relative aspect-[4/5]">
+                <img
+                  src={product.image}
                   alt={product.name}
-                  className="w-full h-64 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <Badge className="absolute top-3 left-3 bg-amber-700">{product.badge}</Badge>
-                <Button 
-                  size="sm" 
+                <Badge className="absolute top-3 left-3 bg-bright-red-700 hover:bg-bright-red-800 text-white border-0 shadow-md">
+                  {product.badge}
+                </Badge>
+                <Button
+                  size="sm"
                   variant="ghost"
-                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-stone-100"
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm hover:bg-white text-stone-900"
                 >
                   <Heart className="h-4 w-4" />
                 </Button>
               </div>
               <CardContent className="p-4">
-                <h3 className="font-semibold text-lg text-stone-900 mb-2">{product.name}</h3>
+                <h3 className="font-semibold text-lg text-stone-900 mb-2 truncate group-hover:text-bright-red-700 transition-colors">
+                  {product.name}
+                </h3>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm font-medium">{product.rating}</span>
                   </div>
-                  <span className="text-sm text-stone-500">({product.reviews} reviews)</span>
+                  <span className="text-sm text-stone-500">({product.reviews})</span>
                 </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl font-bold text-stone-900">₹{product.price.toLocaleString()}</span>
-                  <span className="text-sm text-stone-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold text-stone-900">₹{product.price.toLocaleString()}</span>
+                    <span className="text-xs text-stone-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
+                  </div>
+                  <Button size="sm" className="bg-bright-red-700 hover:bg-bright-red-800 text-white shadow-md">
+                    Add to Cart
+                  </Button>
                 </div>
-                <Button className="w-full bg-amber-700 hover:bg-amber-800">Add to Cart</Button>
               </CardContent>
             </Card>
           ))}

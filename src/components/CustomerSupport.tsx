@@ -86,15 +86,15 @@ const CustomerSupport = () => {
       status: 'sent'
     };
 
-    setRequests(prev => 
-      prev.map(req => 
-        req.id === selectedRequest.id 
+    setRequests(prev =>
+      prev.map(req =>
+        req.id === selectedRequest.id
           ? { ...req, messages: [...req.messages, message], status: 'in-progress' as const }
           : req
       )
     );
 
-    setSelectedRequest(prev => 
+    setSelectedRequest(prev =>
       prev ? { ...prev, messages: [...prev.messages, message] } : null
     );
 
@@ -113,7 +113,7 @@ const CustomerSupport = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-blue-100 text-blue-800';
-      case 'in-progress': return 'bg-orange-100 text-orange-800';
+      case 'in-progress': return 'bg-bright-red-100 text-bright-red-800';
       case 'resolved': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -134,9 +134,8 @@ const CustomerSupport = () => {
             {requests.map((request) => (
               <div
                 key={request.id}
-                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedRequest?.id === request.id ? 'bg-amber-50 border-amber-200' : 'hover:bg-stone-50'
-                }`}
+                className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedRequest?.id === request.id ? 'bg-bright-red-50 border-bright-red-200' : 'hover:bg-stone-50'
+                  }`}
                 onClick={() => setSelectedRequest(request)}
               >
                 <div className="flex justify-between items-start mb-2">
@@ -181,7 +180,7 @@ const CustomerSupport = () => {
                 </Button>
               </div>
             </CardHeader>
-            
+
             {/* Messages */}
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
               {selectedRequest.messages.map((message) => (
@@ -190,11 +189,10 @@ const CustomerSupport = () => {
                   className={`flex ${message.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[70%] p-3 rounded-lg ${
-                      message.sender === 'admin'
-                        ? 'bg-amber-100 text-amber-900'
-                        : 'bg-stone-100 text-stone-900'
-                    }`}
+                    className={`max-w-[70%] p-3 rounded-lg ${message.sender === 'admin'
+                      ? 'bg-bright-red-100 text-bright-red-900'
+                      : 'bg-stone-100 text-stone-900'
+                      }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
                       {message.sender === 'admin' ? (
@@ -225,7 +223,7 @@ const CustomerSupport = () => {
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   className="flex-1"
                 />
-                <Button onClick={handleSendMessage} className="bg-amber-700 hover:bg-amber-800">
+                <Button onClick={handleSendMessage} className="bg-bright-red-700 hover:bg-bright-red-800 text-white">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

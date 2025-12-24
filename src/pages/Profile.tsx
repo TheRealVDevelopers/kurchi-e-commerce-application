@@ -29,7 +29,7 @@ const Profile = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -38,8 +38,8 @@ const Profile = () => {
           <div className="lg:col-span-1">
             <Card>
               <CardHeader className="text-center">
-                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="h-10 w-10 text-amber-700" />
+                <div className="w-20 h-20 bg-bright-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User className="h-10 w-10 text-bright-red-700" />
                 </div>
                 <CardTitle>John Doe</CardTitle>
                 <p className="text-stone-600">john.doe@email.com</p>
@@ -50,11 +50,10 @@ const Profile = () => {
                     <Button
                       key={item.id}
                       variant={activeTab === item.id ? "default" : "ghost"}
-                      className={`w-full justify-start ${
-                        activeTab === item.id 
-                          ? "bg-amber-700 hover:bg-amber-800" 
-                          : "hover:bg-stone-100"
-                      }`}
+                      className={`w-full justify-start ${activeTab === item.id
+                        ? "bg-bright-red-700 hover:bg-bright-red-800 text-white"
+                        : "hover:bg-stone-100"
+                        }`}
                       onClick={() => setActiveTab(item.id)}
                     >
                       <item.icon className="h-4 w-4 mr-2" />
@@ -106,7 +105,7 @@ const Profile = () => {
                       <Input id="phone" defaultValue="+91 9876543210" />
                     </div>
                   </div>
-                  <Button className="bg-amber-700 hover:bg-amber-800">Save Changes</Button>
+                  <Button className="bg-tomato-700 hover:bg-tomato-800 text-white">Save Changes</Button>
                 </CardContent>
               </Card>
             )}
@@ -126,11 +125,11 @@ const Profile = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold">{order.amount}</p>
-                          <Badge 
+                          <Badge
                             className={
                               order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                              order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                              'bg-yellow-100 text-yellow-800'
+                                order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-yellow-100 text-yellow-800'
                             }
                           >
                             {order.status}

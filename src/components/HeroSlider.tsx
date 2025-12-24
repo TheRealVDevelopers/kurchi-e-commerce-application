@@ -56,14 +56,13 @@ const HeroSlider = () => {
       {slides.map((slide, index) => (
         <div
           key={slide.id}
-          className={`absolute inset-0 transition-transform duration-700 ease-in-out ${
-            index === currentSlide ? 'translate-x-0' : 
+          className={`absolute inset-0 transition-transform duration-700 ease-in-out ${index === currentSlide ? 'translate-x-0' :
             index < currentSlide ? '-translate-x-full' : 'translate-x-full'
-          }`}
+            }`}
         >
           <div className="relative h-full">
-            <img 
-              src={slide.image} 
+            <img
+              src={slide.image}
               alt={slide.title}
               className="w-full h-full object-cover"
             />
@@ -73,17 +72,17 @@ const HeroSlider = () => {
                 <h2 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
                   {slide.title}
                 </h2>
-                <h3 className="text-xl md:text-2xl mb-6 text-amber-200">
+                <h3 className="text-xl md:text-2xl mb-6 text-bright-red-200">
                   {slide.subtitle}
                 </h3>
                 <p className="text-lg mb-8 opacity-90 leading-relaxed">
                   {slide.description}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 items-center md:items-start">
-                  <Button size="lg" className="bg-amber-700 hover:bg-amber-800 text-white px-8 py-3">
+                  <Button size="lg" className="bg-bright-red-700 hover:bg-bright-red-800 text-white px-8 py-3 shadow-lg transform transition hover:scale-105">
                     {slide.cta}
                   </Button>
-                  <div className="text-2xl font-bold text-amber-200">
+                  <div className="text-2xl font-bold text-bright-red-200">
                     {slide.price}
                   </div>
                 </div>
@@ -116,11 +115,10 @@ const HeroSlider = () => {
         {slides.map((_, index) => (
           <button
             key={index}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              index === currentSlide 
-                ? 'bg-amber-500 scale-125' 
-                : 'bg-white/50 hover:bg-white/75'
-            }`}
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${index === currentSlide
+              ? 'bg-bright-red-500 scale-125 shadow-[0_0_10px_rgba(255,0,0,0.5)]'
+              : 'bg-white/50 hover:bg-white/75'
+              }`}
             onClick={() => setCurrentSlide(index)}
           />
         ))}

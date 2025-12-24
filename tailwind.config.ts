@@ -61,6 +61,32 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				tomato: {
+					50: '#fff5f4',
+					100: '#ffe8e6',
+					200: '#ffd2cc',
+					300: '#ffada1',
+					400: '#ff7e6b',
+					500: '#ff6347', // Tomato Base
+					600: '#ef4a2e',
+					700: '#c93922',
+					800: '#a6301e',
+					900: '#8c2c1d',
+					DEFAULT: '#ff6347',
+				},
+				'bright-red': {
+					50: '#fff1f1',
+					100: '#ffdfdf',
+					200: '#ffc4c4',
+					300: '#ff9d9d',
+					400: '#ff6969',
+					500: '#ff0000', // Bright Red Base
+					600: '#d90000',
+					700: '#b30000',
+					800: '#8c0000',
+					900: '#660000',
+					DEFAULT: '#ff0000',
 				}
 			},
 			borderRadius: {

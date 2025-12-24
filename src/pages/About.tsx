@@ -30,7 +30,7 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -38,7 +38,7 @@ const About = () => {
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-stone-900 mb-6">About Kurchi</h1>
           <p className="text-xl text-stone-600 max-w-3xl mx-auto">
-            We are passionate about creating premium furniture that combines timeless design with modern comfort. 
+            We are passionate about creating premium furniture that combines timeless design with modern comfort.
             Every piece is crafted with care to transform your space into a haven of style and functionality.
           </p>
         </div>
@@ -48,22 +48,22 @@ const About = () => {
           <div>
             <h2 className="text-3xl font-bold text-stone-900 mb-6">Our Story</h2>
             <p className="text-lg text-stone-600 mb-6">
-              Founded in 2020, Kurchi began as a small family business with a simple vision: to make premium 
-              furniture accessible to everyone. What started as a passion project has grown into a trusted 
+              Founded in 2020, Kurchi began as a small family business with a simple vision: to make premium
+              furniture accessible to everyone. What started as a passion project has grown into a trusted
               brand known for quality, craftsmanship, and exceptional customer service.
             </p>
             <p className="text-lg text-stone-600 mb-6">
-              Our name "Kurchi" comes from the Hindi word for chair, reflecting our roots and commitment 
+              Our name "Kurchi" comes from the Hindi word for chair, reflecting our roots and commitment
               to creating seating solutions that bring comfort and joy to Indian homes and offices.
             </p>
-            <Button size="lg" className="bg-amber-700 hover:bg-amber-800">
+            <Button size="lg" className="bg-bright-red-700 hover:bg-bright-red-800 text-white">
               Explore Our Collection
             </Button>
           </div>
           <div className="relative">
-            <img 
-              src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=400&fit=crop&crop=center" 
-              alt="Our Workshop" 
+            <img
+              src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&h=400&fit=crop&crop=center"
+              alt="Our Workshop"
               className="w-full h-96 object-cover rounded-2xl shadow-2xl"
             />
           </div>
@@ -76,7 +76,7 @@ const About = () => {
             {features.map((feature, index) => (
               <Card key={index} className="text-center p-6 hover:shadow-xl transition-shadow duration-300">
                 <CardContent className="pt-6">
-                  <feature.icon className="h-12 w-12 text-amber-700 mx-auto mb-4" />
+                  <feature.icon className="h-12 w-12 text-bright-red-700 mx-auto mb-4" />
                   <h3 className="font-semibold text-lg text-stone-900 mb-3">{feature.title}</h3>
                   <p className="text-stone-600">{feature.description}</p>
                 </CardContent>
@@ -96,8 +96,8 @@ const About = () => {
             ].map((member, index) => (
               <Card key={index} className="text-center p-6">
                 <CardContent className="pt-6">
-                  <img 
-                    src={member.image} 
+                  <img
+                    src={member.image}
                     alt={member.name}
                     className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
                   />
@@ -110,10 +110,10 @@ const About = () => {
         </div>
 
         {/* Contact CTA */}
-        <div className="bg-gradient-to-r from-amber-700 to-orange-700 text-white rounded-2xl p-12 text-center">
+        <div className="bg-gradient-to-r from-bright-red-700 to-bright-red-800 text-white rounded-2xl p-12 text-center shadow-xl">
           <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Space?</h2>
           <p className="text-xl mb-8">Get in touch with us for personalized furniture solutions</p>
-          <Button size="lg" className="bg-white text-amber-700 hover:bg-stone-100">
+          <Button size="lg" className="bg-white text-bright-red-700 hover:bg-stone-100 font-bold">
             Contact Us
           </Button>
         </div>

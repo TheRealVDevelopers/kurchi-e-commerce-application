@@ -19,7 +19,7 @@ const Login = () => {
     }, [user, navigate]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-100 to-amber-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-100 to-bright-red-50 p-4">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -28,7 +28,7 @@ const Login = () => {
             >
                 <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
                     <CardHeader className="text-center space-y-4 pb-8">
-                        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+                        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-bright-red-500 to-bright-red-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
                             <Shield className="h-8 w-8 text-white" />
                         </div>
                         <div className="space-y-2">
@@ -44,11 +44,11 @@ const Login = () => {
                         <div className="space-y-4">
                             <Button
                                 onClick={() => login('admin')}
-                                className="w-full h-14 text-lg font-medium bg-white hover:bg-stone-50 text-stone-700 border-2 border-stone-200 hover:border-amber-500 transition-all duration-300 group shadow-sm hover:shadow-md"
+                                className="w-full h-14 text-lg font-medium bg-white hover:bg-stone-50 text-stone-700 border-2 border-stone-200 hover:border-bright-red-500 transition-all duration-300 group shadow-sm hover:shadow-md"
                             >
                                 <div className="flex items-center w-full">
-                                    <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center mr-4 group-hover:bg-amber-100 transition-colors">
-                                        <UserCog className="h-5 w-5 text-stone-600 group-hover:text-amber-600" />
+                                    <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center mr-4 group-hover:bg-bright-red-100 transition-colors">
+                                        <UserCog className="h-5 w-5 text-stone-600 group-hover:text-bright-red-600" />
                                     </div>
                                     <span className="flex-1 text-left">Login as Admin</span>
                                     <Lock className="h-4 w-4 text-stone-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -61,10 +61,10 @@ const Login = () => {
                             >
                                 <div className="flex items-center w-full">
                                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-4">
-                                        <UserCheck className="h-5 w-5 text-amber-400" />
+                                        <UserCheck className="h-5 w-5 text-bright-red-400" />
                                     </div>
                                     <span className="flex-1 text-left">Login as Super Admin</span>
-                                    <Shield className="h-4 w-4 text-amber-400" />
+                                    <Shield className="h-4 w-4 text-bright-red-400" />
                                 </div>
                             </Button>
                         </div>

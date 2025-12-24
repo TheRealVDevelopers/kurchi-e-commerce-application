@@ -2,6 +2,7 @@ import { Heart, ShoppingCart, Star, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
 
@@ -50,7 +51,7 @@ const Wishlist = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -60,7 +61,7 @@ const Wishlist = () => {
             <h1 className="text-3xl font-bold text-stone-900 mb-2">My Wishlist</h1>
             <p className="text-stone-600">{wishlistItems.length} items saved for later</p>
           </div>
-          <Button variant="outline" className="border-amber-700 text-amber-700">
+          <Button variant="outline" className="border-bright-red-700 text-bright-red-700 hover:bg-bright-red-50">
             Clear All
           </Button>
         </div>
@@ -70,8 +71,8 @@ const Wishlist = () => {
           {wishlistItems.map((item) => (
             <Card key={item.id} className="group relative hover:shadow-xl transition-all duration-300">
               <div className="relative">
-                <img 
-                  src={item.image} 
+                <img
+                  src={item.image}
                   alt={item.name}
                   className="w-full h-64 object-cover rounded-t-lg group-hover:scale-105 transition-transform duration-500"
                 />
@@ -80,8 +81,8 @@ const Wishlist = () => {
                     <Badge className="bg-red-600 text-white">Out of Stock</Badge>
                   </div>
                 )}
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="ghost"
                   className="absolute top-3 right-3 bg-white hover:bg-red-50 text-red-600"
                 >
@@ -102,8 +103,8 @@ const Wishlist = () => {
                   <span className="text-sm text-stone-500 line-through">₹{item.originalPrice.toLocaleString()}</span>
                 </div>
                 <div className="space-y-2">
-                  <Button 
-                    className="w-full bg-amber-700 hover:bg-amber-800 text-white"
+                  <Button
+                    className="w-full bg-bright-red-700 hover:bg-bright-red-800 text-white"
                     disabled={!item.inStock}
                   >
                     {item.inStock ? 'Add to Cart' : 'Notify When Available'}
@@ -124,7 +125,7 @@ const Wishlist = () => {
             <Heart className="h-16 w-16 text-stone-300 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold text-stone-900 mb-2">Your wishlist is empty</h2>
             <p className="text-stone-600 mb-8">Start adding items you love to your wishlist</p>
-            <Button className="bg-amber-700 hover:bg-amber-800">
+            <Button className="bg-bright-red-700 hover:bg-bright-red-800">
               Continue Shopping
             </Button>
           </div>
