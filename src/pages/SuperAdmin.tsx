@@ -1,233 +1,325 @@
 import { useState, useEffect } from 'react';
-import { Package, TrendingUp, Users, DollarSign, CheckCircle, XCircle, Star, Award, Loader2, Shield } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Add Link import
+import { 
+  Package, TrendingUp, Users, DollarSign, CheckCircle, XCircle, 
+  Star, Award, Loader2, Shield, Trash2, Tag, Percent, ArrowRight 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
 import { useApp, UserRole } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
-import { collection, doc, updateDoc, addDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, addDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 const SuperAdmin = () => {
   const { user } = useApp();
   const [requests, setRequests] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [offerPrice, setOfferPrice] = useState('');
 
   // 1. Fetch Pending Requests
   useEffect(() => {
     const q = query(collection(db, 'product_requests'), where('status', '==', 'pending'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const pendingData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRequests(pendingData);
+      setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => unsubscribe();
   }, []);
 
-  // 2. Fetch All Users (For User Management Tab)
+  // 2. Fetch All Users
   useEffect(() => {
-    // We order by role so Admins/Business users show up first
     const q = query(collection(db, 'users'), orderBy('role'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({
-        uid: doc.id,
-        ...doc.data()
-      }));
-      setAllUsers(usersData);
+      setAllUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3. Fetch Live Inventory
+  useEffect(() => {
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setInventory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setIsLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // 3. Approve Logic
+  // --- ACTIONS ---
+
   const handleApprove = async (request: any) => {
     try {
-      // Add to REAL Products
       await addDoc(collection(db, 'products'), {
         name: request.name,
         category: request.category,
         price: request.price,
         description: request.description,
         image: request.image,
-        rating: 0,
-        reviews: 0,
-        badge: 'New Arrival',
+        featured: false,
+        salePrice: null,
         createdAt: new Date()
       });
-
-      // Mark Request as Approved
-      const requestRef = doc(db, 'product_requests', request.id);
-      await updateDoc(requestRef, { status: 'approved' });
+      await updateDoc(doc(db, 'product_requests', request.id), { status: 'approved' });
       toast.success(`${request.name} is now LIVE!`);
     } catch (error) {
-      console.error(error);
       toast.error("Approval failed");
     }
   };
 
   const handleReject = async (id: string) => {
-    try {
-      const requestRef = doc(db, 'product_requests', id);
-      await updateDoc(requestRef, { status: 'rejected' });
-      toast.info("Request rejected");
-    } catch (error) {
-      toast.error("Action failed");
+    await updateDoc(doc(db, 'product_requests', id), { status: 'rejected' });
+    toast.info("Request rejected");
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (confirm("Are you sure you want to delete this product forever?")) {
+        await deleteDoc(doc(db, 'products', id));
+        toast.error("Product deleted");
     }
   };
 
-  // 4. Role Update Logic
-  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+  const handleToggleFeature = async (product: any) => {
+    const newVal = !product.featured;
+    await updateDoc(doc(db, 'products', product.id), { featured: newVal });
+    toast.success(newVal ? "Product Featured!" : "Removed from Featured");
+  };
+
+  const handleSetOffer = async () => {
+    if (!selectedProduct) return;
+    const price = Number(offerPrice);
+    if (isNaN(price)) return;
     try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, { role: newRole });
-      toast.success(`User role updated to ${newRole}`);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to update role");
+        await updateDoc(doc(db, 'products', selectedProduct.id), { 
+            salePrice: price > 0 ? price : null 
+        });
+        toast.success(price > 0 ? "Special Offer Live!" : "Offer Removed");
+        setSelectedProduct(null);
+        setOfferPrice('');
+    } catch (e) {
+        toast.error("Failed to set offer");
     }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    await updateDoc(doc(db, 'users', userId), { role: newRole });
+    toast.success(`User role updated to ${newRole}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-tomato-50 to-tomato-50">
+    <div className="min-h-screen bg-stone-50">
       <Header />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-tomato-700 via-tomato-600 to-red-600 bg-clip-text text-transparent mb-2">
-            Super Admin HQ
-          </h1>
-          <p className="text-stone-600 text-lg">
-            Manage approvals and user permissions.
-          </p>
+        {/* --- HEADER WITH LINK TO MANAGER VIEW --- */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-stone-900 mb-2">HQ Dashboard</h1>
+            <p className="text-stone-600">Complete control over inventory, users, and offers.</p>
+          </div>
+          
+          <Link to="/admin">
+            <Button variant="outline" className="border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white transition-all shadow-sm">
+              <Shield className="w-4 h-4 mr-2" />
+              Switch to Manager View
+            </Button>
+          </Link>
         </div>
 
-        <Tabs defaultValue="requests" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+        {/* --- QUICK ACTION CARDS --- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-stone-900 text-white border-0 shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Package className="w-5 h-5 text-bright-red-500" />
+                Operational Control
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-stone-400 text-sm mb-4">Jump to the manager dashboard to handle fulfillment and customer support.</p>
+              <Link to="/admin?tab=orders">
+                <Button className="w-full bg-white text-stone-900 hover:bg-stone-100 flex items-center justify-center gap-2">
+                  Manage Orders <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="border-stone-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-stone-500 text-sm font-medium">Global Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-stone-900">{allUsers.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-stone-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-stone-500 text-sm font-medium">Pending Approvals</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-bright-red-600">{requests.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="inventory" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:w-[600px] bg-white border border-stone-200 shadow-sm">
+            <TabsTrigger value="inventory">Live Inventory</TabsTrigger>
             <TabsTrigger value="requests" className="relative">
                 Requests 
                 {requests.length > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white animate-pulse">
                         {requests.length}
                     </span>
                 )}
             </TabsTrigger>
-            <TabsTrigger value="users">User Management</TabsTrigger>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
           </TabsList>
 
-          {/* --- TAB 1: PRODUCT REQUESTS --- */}
-          <TabsContent value="requests" className="space-y-6">
-            {requests.length > 0 ? (
-              <Card className="border-bright-red-200 bg-gradient-to-r from-bright-red-50 to-bright-red-50">
+          <TabsContent value="inventory">
+            <Card>
                 <CardHeader>
-                  <CardTitle className="text-bright-red-800">Pending Approvals</CardTitle>
-                  <CardDescription>Review these items before they go live on the customer site.</CardDescription>
+                    <CardTitle>Manage Live Products</CardTitle>
+                    <CardDescription>Feature items, set discounts, or remove them.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {requests.map((request) => (
-                      <div key={request.id} className="flex flex-col md:flex-row items-center gap-4 p-4 bg-white rounded-xl shadow-sm border border-stone-100">
-                        <img src={request.image} alt={request.name} className="w-20 h-20 object-cover rounded-lg" />
-                        <div className="flex-1">
-                          <h3 className="font-bold text-stone-900">{request.name}</h3>
-                          <div className="flex gap-2 text-sm text-stone-500 mt-1">
-                             <Badge variant="outline">{request.category}</Badge>
-                             <span>By: {request.adminName || 'Unknown'}</span>
-                          </div>
-                          <p className="text-xl font-bold text-bright-red-700 mt-2">₹{request.price.toLocaleString()}</p>
-                        </div>
-                        <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline">View Details</Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader><DialogTitle>Approval Request</DialogTitle></DialogHeader>
-                              <div className="grid md:grid-cols-2 gap-6 pt-4">
-                                <img src={request.image} alt={request.name} className="w-full h-64 object-cover rounded-xl" />
-                                <div className="space-y-4">
-                                  <div>
-                                    <h3 className="text-2xl font-bold">{request.name}</h3>
-                                    <p className="text-bright-red-600 font-medium">{request.category}</p>
+                    {isLoading ? (
+                      <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                    ) : (
+                      <div className="space-y-4">
+                          {inventory.map((item) => (
+                              <div key={item.id} className="flex flex-col sm:flex-row items-center justify-between p-4 border rounded-lg bg-white hover:shadow-sm">
+                                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                                      <div className="relative">
+                                          <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-md" />
+                                          {item.featured && <div className="absolute -top-2 -left-2 bg-yellow-400 text-white p-1 rounded-full"><Star className="w-3 h-3 fill-current" /></div>}
+                                      </div>
+                                      <div>
+                                          <h3 className="font-bold text-stone-900">{item.name}</h3>
+                                          <div className="flex items-center gap-2">
+                                              {item.salePrice ? (
+                                                  <>
+                                                      <span className="text-stone-400 line-through text-sm">₹{item.price}</span>
+                                                      <span className="text-green-600 font-bold">₹{item.salePrice}</span>
+                                                      <Badge variant="outline" className="text-green-600 border-green-200 text-[10px]">OFFER</Badge>
+                                                  </>
+                                              ) : (
+                                                  <span className="text-stone-600">₹{item.price}</span>
+                                              )}
+                                          </div>
+                                      </div>
                                   </div>
-                                  <p className="text-stone-600">{request.description}</p>
-                                  <div className="flex gap-3 pt-4">
-                                    <Button onClick={() => handleApprove(request)} className="flex-1 bg-green-600 hover:bg-green-700">Approve</Button>
-                                    <Button onClick={() => handleReject(request.id)} className="flex-1 bg-red-600 hover:bg-red-700">Reject</Button>
+
+                                  <div className="flex gap-2 mt-4 sm:mt-0 w-full sm:w-auto">
+                                      <Button 
+                                          variant="outline" size="sm"
+                                          onClick={() => handleToggleFeature(item)}
+                                          className={item.featured ? "bg-yellow-50 border-yellow-200 text-yellow-700" : ""}
+                                      >
+                                          <Star className={`w-4 h-4 ${item.featured ? "fill-current" : ""}`} />
+                                      </Button>
+
+                                      <Dialog>
+                                          <DialogTrigger asChild>
+                                              <Button variant="outline" size="sm" className={item.salePrice ? "bg-green-50 border-green-200 text-green-700" : ""}>
+                                                  <Percent className="w-4 h-4" />
+                                              </Button>
+                                          </DialogTrigger>
+                                          <DialogContent>
+                                              <DialogHeader><DialogTitle>Set Special Offer</DialogTitle></DialogHeader>
+                                              <div className="py-4 space-y-4">
+                                                  <Label>Original Price: ₹{item.price}</Label>
+                                                  <div className="space-y-2">
+                                                      <Label>New Offer Price (₹)</Label>
+                                                      <Input 
+                                                          type="number" 
+                                                          defaultValue={item.salePrice || ''} 
+                                                          onChange={(e) => setOfferPrice(e.target.value)} 
+                                                      />
+                                                      <p className="text-xs text-stone-500">Set to 0 to remove the offer.</p>
+                                                  </div>
+                                              </div>
+                                              <DialogFooter>
+                                                  <Button onClick={() => { setSelectedProduct(item); handleSetOffer(); }}>Save Offer</Button>
+                                              </DialogFooter>
+                                          </DialogContent>
+                                      </Dialog>
+
+                                      <Button variant="destructive" size="sm" onClick={() => handleDeleteProduct(item.id)}>
+                                          <Trash2 className="w-4 h-4" />
+                                      </Button>
                                   </div>
-                                </div>
                               </div>
-                            </DialogContent>
-                          </Dialog>
+                          ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
                 </CardContent>
-              </Card>
-            ) : (
-              <Card><CardContent className="text-center py-20 text-stone-500">No pending requests.</CardContent></Card>
-            )}
+            </Card>
           </TabsContent>
 
-          {/* --- TAB 2: USER MANAGEMENT (NEW!) --- */}
+          <TabsContent value="requests">
+             <Card>
+                <CardHeader>
+                    <CardTitle>Pending Approvals</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {requests.length === 0 ? <p className="text-center py-10 text-stone-500">All caught up!</p> : (
+                        <div className="space-y-4">
+                            {requests.map((request) => (
+                                <div key={request.id} className="flex justify-between items-center p-4 border rounded-lg bg-white">
+                                    <div className="flex gap-4">
+                                        <img src={request.image} className="w-16 h-16 rounded object-cover" />
+                                        <div>
+                                            <p className="font-bold">{request.name}</p>
+                                            <p className="text-sm text-stone-500">₹{request.price}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button size="sm" onClick={() => handleApprove(request)} className="bg-green-600 hover:bg-green-700">Approve</Button>
+                                        <Button size="sm" variant="outline" onClick={() => handleReject(request.id)} className="text-red-600 hover:bg-red-50">Reject</Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+             </Card>
+          </TabsContent>
+
           <TabsContent value="users">
             <Card>
-              <CardHeader>
-                <CardTitle>User Roles & Permissions</CardTitle>
-                <CardDescription>Promote users to Admins (Managers) or Business Accounts.</CardDescription>
-              </CardHeader>
+              <CardHeader><CardTitle>User Roles</CardTitle></CardHeader>
               <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
-                ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {allUsers.map((u) => (
-                      <div key={u.uid} className="flex items-center justify-between p-4 border rounded-lg hover:bg-stone-50">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-stone-200 flex items-center justify-center font-bold text-stone-600">
-                             {u.name ? u.name[0].toUpperCase() : 'U'}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-stone-900">{u.name || 'Unknown User'}</p>
-                            <p className="text-sm text-stone-500">{u.email}</p>
-                            <div className="flex gap-2 mt-1">
-                                <span className="text-xs text-stone-400">UID: {u.uid.slice(0,6)}...</span>
-                            </div>
-                          </div>
+                      <div key={u.uid} className="flex items-center justify-between p-3 border rounded hover:bg-stone-50">
+                        <div>
+                            <p className="font-medium">{u.name}</p>
+                            <p className="text-xs text-stone-500">{u.email}</p>
                         </div>
-
-                        <div className="flex items-center gap-4">
-                            {/* Role Badge */}
-                            <Badge className={
-                                u.role === 'superadmin' ? 'bg-purple-100 text-purple-800' :
-                                u.role === 'admin' ? 'bg-orange-100 text-orange-800' :
-                                u.role === 'business' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                            }>
-                                {u.role.toUpperCase()}
-                            </Badge>
-
-                            {/* Role Dropdown */}
-                            {u.role !== 'superadmin' && ( // Don't let superadmin demote themselves accidentally
-                                <Select 
-                                    onValueChange={(val) => handleRoleChange(u.uid, val as UserRole)}
-                                    defaultValue={u.role}
-                                >
-                                    <SelectTrigger className="w-[140px]">
-                                        <SelectValue placeholder="Change Role" />
-                                    </SelectTrigger>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline">{u.role}</Badge>
+                            {u.role !== 'superadmin' && (
+                                <Select onValueChange={(val) => handleRoleChange(u.uid, val as UserRole)}>
+                                    <SelectTrigger className="w-[100px] h-8 text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="user">Customer</SelectItem>
-                                        <SelectItem value="business">Business (B2B)</SelectItem>
+                                        <SelectItem value="user">User</SelectItem>
+                                        <SelectItem value="business">Business</SelectItem>
                                         <SelectItem value="admin">Manager</SelectItem>
-                                        <SelectItem value="superadmin">Super Admin</SelectItem>
+                                        <SelectItem value="superadmin">HQ</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -235,15 +327,9 @@ const SuperAdmin = () => {
                       </div>
                     ))}
                   </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
-
-           <TabsContent value="overview">
-              <div className="p-4 text-center text-stone-500">Overview Stats Placeholder</div>
-           </TabsContent>
-
         </Tabs>
       </div>
       <MobileNavigation />

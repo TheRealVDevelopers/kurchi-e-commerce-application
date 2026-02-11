@@ -16,6 +16,7 @@ import Profile from "./pages/Profile";
 import Cart from "./pages/Cart";
 import Wishlist from "./pages/Wishlist";
 import Admin from "./pages/Admin";
+import Contact from "./pages/Contact";
 import SuperAdmin from "./pages/SuperAdmin";
 import NotFound from "./pages/NotFound";
 import Checkout from "./pages/Checkout"; // Adding this for the checkout flow
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/cart" element={<Cart />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/contact" element={<Contact />} />
               
               {/* Checkout Routes */}
               <Route path="/checkout" element={<Checkout />} />

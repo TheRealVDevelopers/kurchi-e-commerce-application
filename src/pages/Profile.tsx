@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import AddressBook from '@/components/AddressBook';
+import AccountSettings from '@/components/AccountSettings';
 import { Label } from '@/components/ui/label';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
@@ -223,21 +225,15 @@ const Profile = () => {
               </Card>
             )}
 
-            {activeTab === 'addresses' && (
-              <Card>
-                <CardContent className="py-8 text-center text-stone-500">
-                   Address management coming soon.
-                </CardContent>
-              </Card>
-            )}
-            
-            {activeTab === 'settings' && (
-              <Card>
-                <CardContent className="py-8 text-center text-stone-500">
-                   Account settings coming soon.
-                </CardContent>
-              </Card>
-            )}
+            {/* REPLACE THIS SECTION */}
+{activeTab === 'addresses' && (
+  <AddressBook />
+)}
+
+{/* REPLACE THIS SECTION */}
+{activeTab === 'settings' && (
+  <AccountSettings />
+)}
           </div>
         </div>
       </div>
