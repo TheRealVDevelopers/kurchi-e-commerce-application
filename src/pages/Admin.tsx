@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Package, Plus, Send, Clock, CheckCircle, XCircle, AlertCircle, Truck, ShoppingBag, Calendar } from 'lucide-react';
+import { 
+  Plus, Clock, CheckCircle, XCircle, Truck, ShoppingBag, 
+  Printer, ArrowUpRight, MessageSquare, AlertTriangle 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -14,434 +17,335 @@ import MobileNavigation from '@/components/MobileNavigation';
 import CustomerSupport from '@/components/CustomerSupport';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, doc, query, onSnapshot, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, query, onSnapshot, serverTimestamp, orderBy, where } from 'firebase/firestore';
 import { toast } from 'sonner';
-
-// --- Types ---
-interface ProductRequest {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  description: string;
-  image: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requestedAt: any;
-}
 
 interface Order {
   id: string;
   amount: number;
-  status: 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: string;
   items: any[];
   createdAt: any;
-  shippingAddress?: {
-    fullName: string;
-    city: string;
-  };
-  userId: string;
+  shippingAddress?: any;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    stock: number;
+    price: number;
+    image: string;
+    sku: string;
 }
 
 const Admin = () => {
   const { user } = useApp();
-  const [requests, setRequests] = useState<ProductRequest[]>([]);
+  
+  // Data State
+  const [requests, setRequests] = useState<any[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  
+  // Stats
+  const [stats, setStats] = useState({ todaySales: 0, pendingOrders: 0, toShip: 0, lowStockCount: 0 });
+
+  // UI State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [stockUpdateId, setStockUpdateId] = useState<string | null>(null);
+  const [newStockValue, setNewStockValue] = useState('');
 
-  // Form State for New Product
+  // --- NEW: ADVANCED PRODUCT FORM STATE ---
   const [newProduct, setNewProduct] = useState({
-    name: '',
-    category: '',
-    price: '',
-    description: '',
-    image: ''
+    name: '', 
+    category: '', 
+    description: '', 
+    image: '',
+    sku: '',            // NEW
+    stock: '',          // NEW
+    gst: '',            // NEW
+    price: '',          // B2C Price
+    b2bPrice: '',       // NEW: B2B Price
   });
 
-  // --- 1. Fetch Data (Real-Time) ---
+  // --- 1. DATA ENGINE ---
   useEffect(() => {
-    // A. Fetch Product Requests
-    const qRequests = query(collection(db, 'product_requests'), orderBy('requestedAt', 'desc'));
-    const unsubscribeRequests = onSnapshot(qRequests, (snapshot) => {
-      setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductRequest)));
-    });
-
-    // B. Fetch Orders (For Order Management Tab)
+    // A. Orders
     const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const unsubscribeOrders = onSnapshot(qOrders, (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+    const unsubOrders = onSnapshot(qOrders, (snapshot) => {
+      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      setOrders(ordersData);
+      calculateDailyStats(ordersData);
+      
+      // Activity Feed
+      const feed = ordersData.slice(0, 5).map(o => ({
+          type: 'order', id: o.id, title: `New Order: ₹${o.amount}`,
+          desc: o.shippingAddress?.fullName || 'Guest', time: o.createdAt
+      }));
+      setRecentActivity(feed);
     });
 
-    return () => {
-      unsubscribeRequests();
-      unsubscribeOrders();
-    };
-  }, []);
+    // B. Products (Low Stock Check)
+    const qProducts = query(collection(db, 'products'));
+    const unsubProducts = onSnapshot(qProducts, (snapshot) => {
+        const prodData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        setProducts(prodData);
+        setStats(prev => ({ ...prev, lowStockCount: prodData.filter(p => (p.stock || 0) < 5).length }));
+    });
 
-  // --- 2. Action: Submit New Product Request ---
+    // C. My Requests
+    if (user?.uid) {
+        const qRequests = query(collection(db, 'product_requests'), where('adminId', '==', user.uid));
+        const unsubRequests = onSnapshot(qRequests, (snapshot) => {
+            setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+        return () => { unsubOrders(); unsubProducts(); unsubRequests(); };
+    }
+    return () => { unsubOrders(); unsubProducts(); };
+  }, [user]);
+
+  // --- 2. LOGIC & ACTIONS ---
+  const calculateDailyStats = (ordersData: Order[]) => {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const todayOrders = ordersData.filter(o => o.createdAt?.seconds && new Date(o.createdAt.seconds * 1000) >= today);
+      
+      setStats(prev => ({
+          ...prev,
+          todaySales: todayOrders.reduce((sum, o) => sum + o.amount, 0),
+          pendingOrders: ordersData.filter(o => o.status === 'processing').length,
+          toShip: ordersData.filter(o => o.status === 'processing').length
+      }));
+  };
+
+  const handleUpdateOrderStatus = async (id: string, status: string) => {
+      await updateDoc(doc(db, 'orders', id), { status });
+      toast.success(`Order marked as ${status}`);
+  };
+
+  const handleUpdateStock = async () => {
+      if (!stockUpdateId || !newStockValue) return;
+      await updateDoc(doc(db, 'products', stockUpdateId), { stock: parseInt(newStockValue) });
+      toast.success("Stock updated");
+      setStockUpdateId(null);
+  };
+
   const handleSubmitRequest = async () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.category) {
-      toast.error("Please fill in all required fields");
-      return;
+    // Validation
+    if (!newProduct.name || !newProduct.price || !newProduct.sku) {
+        toast.error("Name, Price, and SKU are required");
+        return;
     }
 
     setIsLoading(true);
     try {
       await addDoc(collection(db, 'product_requests'), {
-        name: newProduct.name,
-        category: newProduct.category,
+        ...newProduct,
         price: Number(newProduct.price),
-        description: newProduct.description,
-        image: newProduct.image || 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
+        b2bPrice: Number(newProduct.b2bPrice) || Number(newProduct.price), // Fallback to B2C if empty
+        stock: Number(newProduct.stock) || 0,
+        gst: Number(newProduct.gst) || 18,
         status: 'pending',
-        adminName: user?.name || 'Manager',
+        adminName: user?.name,
         adminId: user?.uid,
         requestedAt: serverTimestamp()
       });
-
-      toast.success("Product request submitted for approval");
-      setNewProduct({ name: '', category: '', price: '', description: '', image: '' });
+      toast.success("Request submitted to HQ");
       setIsDialogOpen(false);
-    } catch (error) {
-      console.error("Error submitting request:", error);
-      toast.error("Failed to submit request");
-    } finally {
-      setIsLoading(false);
-    }
+      setNewProduct({ name: '', category: '', price: '', b2bPrice: '', description: '', image: '', sku: '', stock: '', gst: '' });
+    } catch (e) { toast.error("Submission failed"); } 
+    finally { setIsLoading(false); }
   };
-
-  // --- 3. Action: Update Order Status ---
-  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      const orderRef = doc(db, 'orders', orderId);
-      await updateDoc(orderRef, { status: newStatus });
-      toast.success(`Order status updated to ${newStatus}`);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to update order");
-    }
-  };
-
-  // --- Helpers ---
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'approved': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return null;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getOrderBadgeColor = (status: string) => {
-    switch (status) {
-      case 'processing': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'shipped': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const pendingCount = requests.filter(req => req.status === 'pending').length;
-  const activeOrdersCount = orders.filter(o => o.status === 'processing' || o.status === 'shipped').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
+    <div className="min-h-screen bg-stone-50">
       <Header />
-
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-bright-red-700 to-bright-red-800 bg-clip-text text-transparent mb-2">
-            Manager Dashboard
-          </h1>
-          <p className="text-stone-600 text-lg">
-            Welcome back, {user?.name || 'Manager'}. Manage inventory and fulfill orders.
-          </p>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 className="text-3xl font-bold text-stone-900">Operations Center</h1>
+                <p className="text-stone-500">Manage orders, stock, and new products.</p>
+            </div>
+            <div className="flex gap-2">
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-stone-900"><Plus className="w-4 h-4 mr-2"/> New Product</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader><DialogTitle>Product Creation Wizard</DialogTitle></DialogHeader>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                            {/* Basic Info */}
+                            <div className="col-span-2"><Label>Product Name</Label><Input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} placeholder="e.g. Ergonomic Office Chair" /></div>
+                            
+                            <div><Label>Category</Label>
+                                <Select onValueChange={v => setNewProduct({...newProduct, category: v})}>
+                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Office Chairs">Office Chairs</SelectItem>
+                                        <SelectItem value="Sofas">Sofas</SelectItem>
+                                        <SelectItem value="Recliners">Recliners</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div><Label>SKU (Stock Keeping Unit)</Label><Input value={newProduct.sku} onChange={e => setNewProduct({...newProduct, sku: e.target.value})} placeholder="e.g. CHR-BLK-001" /></div>
+                            
+                            {/* Pricing & Stock */}
+                            <div className="p-4 bg-stone-50 rounded-lg col-span-2 grid grid-cols-2 gap-4 border">
+                                <div><Label>B2C Price (Retail)</Label><Input type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} placeholder="₹" /></div>
+                                <div><Label>B2B Price (Wholesale)</Label><Input type="number" value={newProduct.b2bPrice} onChange={e => setNewProduct({...newProduct, b2bPrice: e.target.value})} placeholder="₹" className="border-blue-200" /></div>
+                                <div><Label>GST %</Label><Input type="number" value={newProduct.gst} onChange={e => setNewProduct({...newProduct, gst: e.target.value})} placeholder="18" /></div>
+                                <div><Label>Initial Stock</Label><Input type="number" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} placeholder="Qty" /></div>
+                            </div>
+
+                            <div className="col-span-2"><Label>Image URL</Label><Input value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} placeholder="https://..." /></div>
+                            <div className="col-span-2"><Label>Description</Label><Textarea value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} /></div>
+                            
+                            <Button onClick={handleSubmitRequest} disabled={isLoading} className="col-span-2 bg-stone-900 h-12 text-lg">
+                                {isLoading ? 'Submitting...' : 'Submit to HQ for Approval'}
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+          <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger> {/* NEW TAB */}
+            <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="inventory">Inventory</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
+            <TabsTrigger value="requests">My Requests</TabsTrigger>
           </TabsList>
 
-          {/* --- TAB 1: OVERVIEW --- */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="border-l-4 border-l-blue-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{requests.length}</div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-yellow-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-                  <Clock className="h-4 w-4 text-yellow-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{pendingCount}</div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-purple-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-                  <Truck className="h-4 w-4 text-purple-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{activeOrdersCount}</div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-green-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <ShoppingBag className="h-4 w-4 text-green-500" />
-                </CardHeader>
-                <CardContent>
-                  {/* Calculate total revenue from orders */}
-                  <div className="text-2xl font-bold">
-                    ₹{orders.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}
-                  </div>
-                </CardContent>
-              </Card>
+          {/* TAB 1: Overview */}
+          <TabsContent value="overview">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <Card className="border-l-4 border-l-green-500"><CardHeader className="pb-2"><CardTitle className="text-sm text-stone-500">Today's Sales</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">₹{stats.todaySales.toLocaleString()}</div></CardContent></Card>
+                <Card className="border-l-4 border-l-blue-500"><CardHeader className="pb-2"><CardTitle className="text-sm text-stone-500">Pending Orders</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.pendingOrders}</div></CardContent></Card>
+                <Card className="border-l-4 border-l-red-500"><CardHeader className="pb-2"><CardTitle className="text-sm text-stone-500">Low Stock Items</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{stats.lowStockCount}</div></CardContent></Card>
+                <Card className="border-l-4 border-l-orange-500"><CardHeader className="pb-2"><CardTitle className="text-sm text-stone-500">To Ship</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.toShip}</div></CardContent></Card>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="md:col-span-2">
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5"/> Live Activity</CardTitle></CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {recentActivity.map((item, i) => (
+                                <div key={i} className="flex items-center justify-between pb-3 border-b last:border-0">
+                                    <div><p className="font-medium text-sm">{item.title}</p><p className="text-xs text-stone-500">{item.desc}</p></div>
+                                    <span className="text-xs text-stone-400">{item.time?.seconds ? new Date(item.time.seconds*1000).toLocaleTimeString() : 'Now'}</span>
+                                </div>
+                            ))}
+                            {recentActivity.length===0 && <p className="text-stone-400">No recent activity.</p>}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                        <Button className="w-full justify-start" variant="outline" onClick={() => setIsDialogOpen(true)}><Plus className="w-4 h-4 mr-2"/> New Product</Button>
+                        <Button className="w-full justify-start" variant="outline"><MessageSquare className="w-4 h-4 mr-2"/> Check Support</Button>
+                    </CardContent>
+                </Card>
             </div>
           </TabsContent>
 
-          {/* --- TAB 2: PRODUCTS --- */}
-          <TabsContent value="products" className="space-y-6">
-            {/* Add Product Request */}
-            <Card className="bg-gradient-to-r from-bright-red-50 to-bright-red-50 border-bright-red-200">
-              <CardHeader>
-                <CardTitle className="text-bright-red-800">Request New Product</CardTitle>
-                <CardDescription>Submit a new product request to Super Admin for approval</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Request New Product
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>New Product Request</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="name">Product Name</Label>
-                        <Input
-                          id="name"
-                          value={newProduct.name}
-                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                          placeholder="Enter product name"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="category">Category</Label>
-                        <Select value={newProduct.category} onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Office Chairs">Office Chairs</SelectItem>
-                            <SelectItem value="Sofas">Sofas</SelectItem>
-                            <SelectItem value="Recliners">Recliners</SelectItem>
-                            <SelectItem value="Bean Bags">Bean Bags</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="price">Price (₹)</Label>
-                        <Input
-                          id="price"
-                          type="number"
-                          value={newProduct.price}
-                          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                          placeholder="Enter price"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="image">Image URL</Label>
-                        <Input
-                          id="image"
-                          value={newProduct.image}
-                          onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                          placeholder="https://..."
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={newProduct.description}
-                          onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                          placeholder="Enter product description"
-                        />
-                      </div>
-                      <Button onClick={handleSubmitRequest} disabled={isLoading} className="w-full bg-gradient-to-r from-bright-red-600 to-bright-red-700">
-                        <Send className="h-4 w-4 mr-2" />
-                        {isLoading ? 'Submitting...' : 'Submit Request'}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </CardContent>
-            </Card>
-
-            {/* Product Requests List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>My Requests</CardTitle>
-                <CardDescription>Track the status of your submissions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {requests.map((request) => (
-                    <div key={request.id} className="flex items-center justify-between p-6 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src={request.image}
-                          alt={request.name}
-                          className="w-16 h-16 object-cover rounded-lg border bg-stone-100"
-                        />
-                        <div>
-                          <h3 className="font-semibold text-lg text-stone-800">{request.name}</h3>
-                          <p className="text-sm text-stone-600">{request.category}</p>
-                          <p className="text-sm font-bold text-bright-red-700">₹{request.price.toLocaleString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center space-x-2">
-                          {getStatusIcon(request.status)}
-                          <Badge className={`${getStatusColor(request.status)}`}>
-                            {request.status.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <span className="text-xs text-stone-400">
-                          ID: {request.id.slice(0,8)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {requests.length === 0 && (
-                    <div className="text-center py-8 text-stone-500">
-                      No requests found. Start by adding one!
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* --- TAB 3: ORDER MANAGEMENT (NEW) --- */}
+          {/* TAB 2: Orders */}
           <TabsContent value="orders">
              <Card>
-                <CardHeader>
-                    <CardTitle>Order Fulfillment</CardTitle>
-                    <CardDescription>Manage and track customer orders.</CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Order Fulfillment</CardTitle></CardHeader>
                 <CardContent>
-                    {orders.length === 0 ? (
-                        <div className="text-center py-12 text-stone-500">
-                            No orders received yet.
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-stone-50 text-stone-600 font-medium border-b">
-                                    <tr>
-                                        <th className="px-4 py-3">Order ID</th>
-                                        <th className="px-4 py-3">Date</th>
-                                        <th className="px-4 py-3">Customer</th>
-                                        <th className="px-4 py-3">Total</th>
-                                        <th className="px-4 py-3">Status</th>
-                                        <th className="px-4 py-3">Action</th>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-stone-50 border-b">
+                                <tr>
+                                    <th className="px-4 py-3">Order ID</th><th className="px-4 py-3">Customer</th><th className="px-4 py-3">Total</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {orders.map((order) => (
+                                    <tr key={order.id}>
+                                        <td className="px-4 py-3 font-mono">{order.id.slice(0,8)}</td>
+                                        <td className="px-4 py-3">{order.shippingAddress?.fullName}</td>
+                                        <td className="px-4 py-3 font-bold">₹{order.amount}</td>
+                                        <td className="px-4 py-3">
+                                            <Select defaultValue={order.status} onValueChange={(v) => handleUpdateOrderStatus(order.id, v)}>
+                                                <SelectTrigger className="w-[130px] h-8"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="processing">Processing</SelectItem>
+                                                    <SelectItem value="shipped">Shipped</SelectItem>
+                                                    <SelectItem value="delivered">Delivered</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </td>
+                                        <td className="px-4 py-3"><Button size="sm" variant="ghost"><Printer className="w-4 h-4"/></Button></td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-stone-100">
-                                    {orders.map((order) => (
-                                        <tr key={order.id} className="hover:bg-stone-50/50">
-                                            <td className="px-4 py-3 font-mono text-xs text-stone-500">
-                                                {order.id.slice(0, 8)}...
-                                            </td>
-                                            <td className="px-4 py-3 text-stone-600">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="w-3 h-3" />
-                                                    {order.createdAt?.seconds 
-                                                        ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() 
-                                                        : 'Just now'}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="font-medium">{order.shippingAddress?.fullName || 'Guest User'}</div>
-                                                <div className="text-xs text-stone-400">{order.shippingAddress?.city}</div>
-                                            </td>
-                                            <td className="px-4 py-3 font-bold text-stone-800">
-                                                ₹{order.amount.toLocaleString()}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <Badge variant="outline" className={getOrderBadgeColor(order.status)}>
-                                                    {order.status.toUpperCase()}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <Select 
-                                                    defaultValue={order.status} 
-                                                    onValueChange={(val) => handleUpdateOrderStatus(order.id, val)}
-                                                >
-                                                    <SelectTrigger className="w-[130px] h-8 text-xs">
-                                                        <SelectValue placeholder="Update" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="processing">Processing</SelectItem>
-                                                        <SelectItem value="shipped">Shipped</SelectItem>
-                                                        <SelectItem value="delivered">Delivered</SelectItem>
-                                                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </CardContent>
              </Card>
           </TabsContent>
 
-          {/* --- TAB 4: SUPPORT --- */}
-          <TabsContent value="support">
+          {/* TAB 3: Inventory */}
+          <TabsContent value="inventory">
             <Card>
-              <CardHeader>
-                <CardTitle>Customer Support</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CustomerSupport />
-              </CardContent>
+                <CardHeader><CardTitle>Stock Control</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {products.map(p => (
+                            <div key={p.id} className="flex justify-between items-center p-3 border rounded">
+                                <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                        <img src={p.image} className="w-12 h-12 rounded object-cover" />
+                                        {(p.stock||0) < 5 && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />}
+                                    </div>
+                                    <div><p className="font-medium">{p.name}</p><p className="text-xs text-stone-500">SKU: {p.sku || 'N/A'}</p></div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {stockUpdateId === p.id ? (
+                                        <>
+                                            <Input className="w-20 h-8" type="number" value={newStockValue} onChange={e => setNewStockValue(e.target.value)} />
+                                            <Button size="sm" className="h-8 bg-green-600" onClick={handleUpdateStock}>Save</Button>
+                                            <Button size="sm" variant="ghost" className="h-8" onClick={() => setStockUpdateId(null)}><XCircle className="w-4 h-4"/></Button>
+                                        </>
+                                    ) : (
+                                        <Button variant="outline" size="sm" onClick={() => { setStockUpdateId(p.id); setNewStockValue(String(p.stock||0)); }}>
+                                            Stock: {p.stock || 0}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="support"><CustomerSupport /></TabsContent>
+
+          <TabsContent value="requests">
+            <Card>
+                <CardHeader><CardTitle>My Requests</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="space-y-3">
+                        {requests.map(req => (
+                            <div key={req.id} className="flex justify-between p-3 border rounded">
+                                <span className="font-medium">{req.name}</span>
+                                <Badge variant={req.status==='approved'?'secondary':'outline'}>{req.status.toUpperCase()}</Badge>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-
       <MobileNavigation />
     </div>
   );

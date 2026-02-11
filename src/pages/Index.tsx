@@ -10,7 +10,7 @@ import HeroSlider from '@/components/HeroSlider';
 import { useCart } from '@/context/CartContext';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, limit, where } from 'firebase/firestore';
+import { collection, getDocs, query, limit, onSnapshot } from 'firebase/firestore';
 
 // Define the interface for our Product data from Firestore
 interface Product {
@@ -24,6 +24,7 @@ interface Product {
   category: string;
   badge?: string;
   discount?: string;
+  stock: number;
 }
 
 // Define interface for Category data
@@ -31,80 +32,83 @@ interface Category {
   id: string;
   name: string;
   image: string;
-  count?: number; // Optional because we might calculate this dynamically
+  count?: number; 
 }
 
 const Index = () => {
   const { user } = useApp();
   const { addToCart } = useCart();
   
-  // State for dynamic data
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch Data from Firestore on Component Mount
   useEffect(() => {
-    const fetchStoreData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // 1. Fetch Products
-        const productsRef = collection(db, 'products');
-        // We limit to 8 for the "Featured" section for performance
-        const q = query(productsRef, limit(8)); 
-        const productSnapshot = await getDocs(q);
-        
-        const fetchedProducts: Product[] = productSnapshot.docs.map(doc => ({
+    let isMounted = true;
+    setIsLoading(true);
+    
+    // 1. Real-time Listener for Products
+    const productsRef = collection(db, 'products');
+    const q = query(productsRef, limit(8)); 
+    
+    const unsubProducts = onSnapshot(q, (snapshot) => {
+        if (!isMounted) return;
+        const fetchedProducts = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as Product));
-
         setProducts(fetchedProducts);
-
-        // 2. Fetch Categories (Or generate them if you don't have a separate collection yet)
-        // ideally you should have a 'categories' collection. 
-        // For now, I'll try to fetch from 'categories' collection, 
-        // but if empty, I'll fallback to a smart generation from the products to prevent a blank screen during dev.
-        const categoriesRef = collection(db, 'categories');
-        const categorySnapshot = await getDocs(categoriesRef);
-        
-        if (!categorySnapshot.empty) {
-          const fetchedCategories = categorySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Category));
-          setCategories(fetchedCategories);
-        } else {
-            // Fallback: If no categories collection exists yet, hardcode the basic structure 
-            // but count products dynamically. This is a safety net.
-            const baseCategories = [
-                { id: 'cat1', name: 'Office Chairs', image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop' },
-                { id: 'cat2', name: 'Sofas', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop' },
-                { id: 'cat3', name: 'Recliners', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop' },
-                { id: 'cat4', name: 'Bean Bags', image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop' }
-            ];
-            setCategories(baseCategories);
-        }
-
-      } catch (error) {
-        console.error("Error fetching store data:", error);
-      } finally {
         setIsLoading(false);
-      }
+    }, (error) => {
+        console.error("Error fetching products:", error);
+        if (isMounted) setIsLoading(false);
+    });
+
+    // 2. Fetch Categories
+    const fetchCategories = async () => {
+        try {
+            const categoriesRef = collection(db, 'categories');
+            const categorySnapshot = await getDocs(categoriesRef);
+            
+            if (!isMounted) return;
+
+            if (!categorySnapshot.empty) {
+                setCategories(categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
+            } else {
+                // Fallback static data if DB is empty
+                setCategories([
+                    { id: 'cat1', name: 'Office Chairs', image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop' },
+                    { id: 'cat2', name: 'Sofas', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop' },
+                    { id: 'cat3', name: 'Recliners', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop' },
+                    { id: 'cat4', name: 'Bean Bags', image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop' }
+                ]);
+            }
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+        }
     };
 
-    fetchStoreData();
+    fetchCategories();
+
+    return () => {
+        isMounted = false;
+        unsubProducts(); 
+    };
   }, []);
 
-  // Helper to calculate price based on role
   const getPrice = (originalPrice: number) => {
     if (user?.role === 'business') {
-      // Apply 18% discount/tax credit for B2B
       return Math.floor(originalPrice * 0.82);
     }
     return originalPrice;
+  };
+
+  // Helper to handle adding to cart with correct type
+  const handleAddToCart = (product: Product) => {
+    // We spread the product properties and explicitly add quantity: 1
+    // to satisfy the CartItem interface
+    addToCart({ ...product, quantity: 1 });
   };
 
   return (
@@ -152,9 +156,6 @@ const Index = () => {
               <Link to="/cart">
                 <Button variant="ghost" size="sm" className="relative text-stone-600 hover:text-bright-red-700">
                   <ShoppingCart className="h-5 w-5" />
-                  {/* Now we can use the real cart context if we wanted to show count, 
-                      but for this file snippet we keep it simple or hook up cart count */}
-                   {/* Optional: Add Cart Count Badge Here if passed from CartContext */}
                 </Button>
               </Link>
               
@@ -204,7 +205,6 @@ const Index = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
                         <h3 className="font-semibold text-lg text-stone-900 mb-2">{category.name}</h3>
-                        {/* We hide count if not available in DB yet */}
                         {category.count !== undefined && (
                             <p className="text-stone-600">{category.count} Products</p>
                         )}
@@ -303,18 +303,21 @@ const Index = () => {
                         )}
                         </div>
 
-                        <Button 
-                            onClick={() => addToCart({
-                                id: parseInt(product.id) || Date.now(), // Handle string IDs for cart
-                                name: product.name,
-                                price: displayPrice,
-                                originalPrice: product.originalPrice || displayPrice,
-                                image: product.image
-                            })}
-                            className="w-full bg-bright-red-700 hover:bg-bright-red-800 text-white"
-                        >
-                        Add to Cart
-                        </Button>
+                        {product.stock > 0 ? (
+                                <Button 
+                                  onClick={() => handleAddToCart(product)}
+                                  className="w-full bg-bright-red-600"
+                                >
+                                  Add to Cart
+                                </Button>
+                              ) : (
+                                <Button 
+                                  disabled 
+                                  className="w-full bg-stone-300 text-stone-600 cursor-not-allowed"
+                                >
+                                  Out of Stock
+                                </Button>
+                              )}
                     </CardContent>
                     </Card>
                 );
