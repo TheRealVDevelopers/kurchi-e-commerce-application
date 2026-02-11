@@ -1,87 +1,153 @@
-
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, UserCog, UserCheck } from 'lucide-react';
+import { Shield, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from '@/context/AppContext';
-import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+import { auth, db } from '@/lib/firebase';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { validateGST } from '@/lib/utils';
 
 const Login = () => {
-    const { login, user } = useApp();
+    const { user } = useApp();
     const navigate = useNavigate();
+    const [gstNumber, setGstNumber] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
+    // Redirect if already logged in
     useEffect(() => {
         if (user) {
             if (user.role === 'admin') navigate('/admin');
-            if (user.role === 'superadmin') navigate('/super-admin');
+            else if (user.role === 'superadmin') navigate('/super-admin');
+            else navigate('/');
         }
     }, [user, navigate]);
 
+    const handleLogin = async (roleType: 'user' | 'business') => {
+        if (roleType === 'business' && !validateGST(gstNumber)) {
+            toast.error("Please enter a valid GST Number");
+            return;
+        }
+
+        setIsLoading(true);
+        const provider = new GoogleAuthProvider();
+
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Check if user document already exists
+            const userDocRef = doc(db, 'users', user.uid);
+            const userSnapshot = await getDoc(userDocRef);
+
+            if (!userSnapshot.exists()) {
+                // If new user, create their profile with the selected role
+                await setDoc(userDocRef, {
+                    email: user.email,
+                    name: user.displayName,
+                    // If they chose business, set role to business, otherwise customer
+                    role: roleType, 
+                    gstNumber: roleType === 'business' ? gstNumber : null,
+                    createdAt: serverTimestamp()
+                });
+                toast.success(`Welcome to Kuruchi ${roleType === 'business' ? 'Business' : ''}!`);
+            } else {
+                // If returning user, just welcome them back
+                const userData = userSnapshot.data();
+                toast.success(`Welcome back, ${userData.name}`);
+            }
+        } catch (error: any) {
+            console.error(error);
+            toast.error("Login Failed: " + error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-100 to-bright-red-50 p-4">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="w-full max-w-md"
-            >
-                <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-                    <CardHeader className="text-center space-y-4 pb-8">
-                        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-bright-red-500 to-bright-red-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+            <div className="w-full max-w-md">
+                <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                    <CardHeader className="text-center pb-6">
+                        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-bright-red-600 to-bright-red-700 rounded-2xl flex items-center justify-center shadow-lg mb-4">
                             <Shield className="h-8 w-8 text-white" />
                         </div>
-                        <div className="space-y-2">
-                            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-stone-800 to-stone-600 bg-clip-text text-transparent">
-                                Welcome Back
-                            </CardTitle>
-                            <CardDescription className="text-stone-500 text-base">
-                                Secure access for authorized personnel
-                            </CardDescription>
-                        </div>
+                        <CardTitle className="text-2xl font-bold text-stone-800">
+                            Welcome to Kuruchi
+                        </CardTitle>
+                        <CardDescription>
+                            Sign in to access your account
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-4">
-                            <Button
-                                onClick={() => login('admin')}
-                                className="w-full h-14 text-lg font-medium bg-white hover:bg-stone-50 text-stone-700 border-2 border-stone-200 hover:border-bright-red-500 transition-all duration-300 group shadow-sm hover:shadow-md"
-                            >
-                                <div className="flex items-center w-full">
-                                    <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center mr-4 group-hover:bg-bright-red-100 transition-colors">
-                                        <UserCog className="h-5 w-5 text-stone-600 group-hover:text-bright-red-600" />
-                                    </div>
-                                    <span className="flex-1 text-left">Login as Admin</span>
-                                    <Lock className="h-4 w-4 text-stone-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                            </Button>
+                    <CardContent>
+                        <Tabs defaultValue="customer" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 mb-6">
+                                <TabsTrigger value="customer">Customer</TabsTrigger>
+                                <TabsTrigger value="business">Business (B2B)</TabsTrigger>
+                            </TabsList>
 
-                            <Button
-                                onClick={() => login('superadmin')}
-                                className="w-full h-14 text-lg font-medium bg-gradient-to-r from-stone-900 to-stone-800 hover:from-black hover:to-stone-900 text-white border-0 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.02]"
-                            >
-                                <div className="flex items-center w-full">
-                                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mr-4">
-                                        <UserCheck className="h-5 w-5 text-bright-red-400" />
+                            <TabsContent value="customer" className="space-y-4">
+                                <div className="bg-stone-50 p-4 rounded-lg border border-stone-100 mb-4">
+                                    <div className="flex items-center gap-3 text-stone-600 mb-2">
+                                        <User className="h-5 w-5" />
+                                        <span className="font-medium">Personal Account</span>
                                     </div>
-                                    <span className="flex-1 text-left">Login as Super Admin</span>
-                                    <Shield className="h-4 w-4 text-bright-red-400" />
+                                    <p className="text-sm text-stone-500">
+                                        Perfect for home furniture and personal orders.
+                                    </p>
                                 </div>
-                            </Button>
-                        </div>
+                                <Button 
+                                    onClick={() => handleLogin('user')} 
+                                    disabled={isLoading}
+                                    className="w-full h-12 text-lg bg-stone-900 hover:bg-black"
+                                >
+                                    {isLoading ? 'Signing in...' : 'Sign in with Google'}
+                                </Button>
+                            </TabsContent>
 
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-stone-200" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 text-stone-400">
-                                    Protected System
-                                </span>
-                            </div>
+                            <TabsContent value="business" className="space-y-4">
+                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                                    <div className="flex items-center gap-3 text-blue-700 mb-2">
+                                        <Building2 className="h-5 w-5" />
+                                        <span className="font-medium">Business Account</span>
+                                    </div>
+                                    <p className="text-sm text-blue-600">
+                                        Enter your GSTIN to unlock bulk pricing and business invoices.
+                                    </p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <Label htmlFor="gst">GST Number</Label>
+                                    <Input 
+                                        id="gst" 
+                                        placeholder="Ex: 22AAAAA0000A1Z5" 
+                                        value={gstNumber}
+                                        onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                                        maxLength={15}
+                                    />
+                                </div>
+
+                                <Button 
+                                    onClick={() => handleLogin('business')}
+                                    disabled={isLoading} 
+                                    className="w-full h-12 text-lg bg-blue-700 hover:bg-blue-800"
+                                >
+                                    {isLoading ? 'Verifying...' : 'Verify GST & Sign in'}
+                                </Button>
+                            </TabsContent>
+                        </Tabs>
+
+                        <div className="mt-6 text-center text-xs text-stone-400">
+                            Protected by Kuruchi Secure Login
                         </div>
                     </CardContent>
                 </Card>
-            </motion.div>
+            </div>
         </div>
     );
 };

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, ShoppingCart, Heart, User, Star, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, ShoppingCart, Heart, User as UserIcon, Star, ArrowRight, Building2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,63 +7,105 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import MobileNavigation from '@/components/MobileNavigation';
 import HeroSlider from '@/components/HeroSlider';
+import { useCart } from '@/context/CartContext';
+import { useApp } from '@/context/AppContext';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, limit, where } from 'firebase/firestore';
+
+// Define the interface for our Product data from Firestore
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  rating?: number;
+  reviews?: number;
+  image: string;
+  category: string;
+  badge?: string;
+  discount?: string;
+}
+
+// Define interface for Category data
+interface Category {
+  id: string;
+  name: string;
+  image: string;
+  count?: number; // Optional because we might calculate this dynamically
+}
 
 const Index = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useApp();
+  const { addToCart } = useCart();
+  
+  // State for dynamic data
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const categories = [
-    { name: 'Office Chairs', count: 45, image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop&crop=center' },
-    { name: 'Sofas', count: 32, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop&crop=center' },
-    { name: 'Recliners', count: 18, image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop&crop=center' },
-    { name: 'Bean Bags', count: 12, image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop&crop=center' }
-  ];
+  // Fetch Data from Firestore on Component Mount
+  useEffect(() => {
+    const fetchStoreData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // 1. Fetch Products
+        const productsRef = collection(db, 'products');
+        // We limit to 8 for the "Featured" section for performance
+        const q = query(productsRef, limit(8)); 
+        const productSnapshot = await getDocs(q);
+        
+        const fetchedProducts: Product[] = productSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Product));
 
-  const featuredProducts = [
-    {
-      id: 1,
-      name: 'Premium Executive Chair',
-      price: 15999,
-      originalPrice: 19999,
-      rating: 4.8,
-      reviews: 124,
-      image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=500&h=400&fit=crop&crop=center',
-      badge: 'Best Seller',
-      discount: '20% OFF'
-    },
-    {
-      id: 2,
-      name: 'Luxury 3-Seater Sofa',
-      price: 45999,
-      originalPrice: 55999,
-      rating: 4.9,
-      reviews: 89,
-      image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&h=400&fit=crop&crop=center',
-      badge: 'Premium',
-      discount: '18% OFF'
-    },
-    {
-      id: 3,
-      name: 'Ergonomic Gaming Chair',
-      price: 12999,
-      originalPrice: 16999,
-      rating: 4.7,
-      reviews: 156,
-      image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=500&h=400&fit=crop&crop=center',
-      badge: 'New',
-      discount: '24% OFF'
-    },
-    {
-      id: 4,
-      name: 'Recliner Massage Chair',
-      price: 35999,
-      originalPrice: 42999,
-      rating: 4.6,
-      reviews: 67,
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=400&fit=crop&crop=center',
-      badge: 'Trending',
-      discount: '16% OFF'
+        setProducts(fetchedProducts);
+
+        // 2. Fetch Categories (Or generate them if you don't have a separate collection yet)
+        // ideally you should have a 'categories' collection. 
+        // For now, I'll try to fetch from 'categories' collection, 
+        // but if empty, I'll fallback to a smart generation from the products to prevent a blank screen during dev.
+        const categoriesRef = collection(db, 'categories');
+        const categorySnapshot = await getDocs(categoriesRef);
+        
+        if (!categorySnapshot.empty) {
+          const fetchedCategories = categorySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          } as Category));
+          setCategories(fetchedCategories);
+        } else {
+            // Fallback: If no categories collection exists yet, hardcode the basic structure 
+            // but count products dynamically. This is a safety net.
+            const baseCategories = [
+                { id: 'cat1', name: 'Office Chairs', image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop' },
+                { id: 'cat2', name: 'Sofas', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop' },
+                { id: 'cat3', name: 'Recliners', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop' },
+                { id: 'cat4', name: 'Bean Bags', image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop' }
+            ];
+            setCategories(baseCategories);
+        }
+
+      } catch (error) {
+        console.error("Error fetching store data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStoreData();
+  }, []);
+
+  // Helper to calculate price based on role
+  const getPrice = (originalPrice: number) => {
+    if (user?.role === 'business') {
+      // Apply 18% discount/tax credit for B2B
+      return Math.floor(originalPrice * 0.82);
     }
-  ];
+    return originalPrice;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50 pb-20 md:pb-0">
@@ -94,6 +136,8 @@ const Index = () => {
                 <Input
                   placeholder="Search chairs, sofas..."
                   className="pl-10 pr-4 w-full border-stone-300 focus:border-bright-red-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             </div>
@@ -108,14 +152,17 @@ const Index = () => {
               <Link to="/cart">
                 <Button variant="ghost" size="sm" className="relative text-stone-600 hover:text-bright-red-700">
                   <ShoppingCart className="h-5 w-5" />
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-bright-red-600">
-                    3
-                  </Badge>
+                  {/* Now we can use the real cart context if we wanted to show count, 
+                      but for this file snippet we keep it simple or hook up cart count */}
+                   {/* Optional: Add Cart Count Badge Here if passed from CartContext */}
                 </Button>
               </Link>
-              <Link to="/profile">
-                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-bright-red-700">
-                  <User className="h-5 w-5" />
+              
+              {/* Profile Link - Shows User Name if logged in */}
+              <Link to={user ? "/profile" : "/login"}>
+                <Button variant="ghost" size="sm" className="hidden md:flex text-stone-600 hover:text-bright-red-700 items-center gap-2">
+                  <UserIcon className="h-5 w-5" />
+                  {user && <span className="text-xs font-semibold">{user.name?.split(' ')[0]}</span>}
                 </Button>
               </Link>
             </div>
@@ -138,26 +185,35 @@ const Index = () => {
             <p className="text-lg text-stone-600">Find the perfect furniture for every space</p>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => (
-              <Link to="/categories" key={index}>
-                <Card className="group cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-stone-200">
-                  <CardContent className="p-6 text-center">
-                    <div className="relative mb-4">
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="w-full h-32 object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    </div>
-                    <h3 className="font-semibold text-lg text-stone-900 mb-2">{category.name}</h3>
-                    <p className="text-stone-600">{category.count} Products</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-bright-red-600" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                {categories.map((category) => (
+                <Link to="/categories" key={category.id}>
+                    <Card className="group cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border-stone-200">
+                    <CardContent className="p-6 text-center">
+                        <div className="relative mb-4">
+                        <img
+                            src={category.image}
+                            alt={category.name}
+                            className="w-full h-32 object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </div>
+                        <h3 className="font-semibold text-lg text-stone-900 mb-2">{category.name}</h3>
+                        {/* We hide count if not available in DB yet */}
+                        {category.count !== undefined && (
+                            <p className="text-stone-600">{category.count} Products</p>
+                        )}
+                    </CardContent>
+                    </Card>
+                </Link>
+                ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -167,51 +223,104 @@ const Index = () => {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-stone-900 mb-4">Featured Products</h2>
             <p className="text-lg text-stone-600">Handpicked favorites for your home and office</p>
+            {user?.role === 'business' && (
+               <Badge className="mt-4 bg-blue-600 text-white hover:bg-blue-700">
+                 <Building2 className="w-4 h-4 mr-1" />
+                 B2B Pricing Enabled
+               </Badge>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredProducts.map((product) => (
-              <Card key={product.id} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border-stone-200">
-                <div className="relative">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <Badge className="absolute top-3 left-3 bg-bright-red-700 hover:bg-bright-red-800">
-                    {product.badge}
-                  </Badge>
-                  <Badge className="absolute top-3 right-3 bg-green-600 hover:bg-green-700">
-                    {product.discount}
-                  </Badge>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
-                  <Button
-                    size="sm"
-                    className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white text-stone-900 hover:bg-stone-100"
-                  >
-                    <Heart className="h-4 w-4" />
-                  </Button>
-                </div>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg text-stone-900 mb-2 line-clamp-2">{product.name}</h3>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{product.rating}</span>
+          {isLoading ? (
+             <div className="flex justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-bright-red-600" />
+             </div>
+          ) : products.length === 0 ? (
+             <div className="text-center py-10 bg-white/50 rounded-xl">
+                 <p className="text-stone-500">No products found. (Add items to 'products' collection in Firestore)</p>
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {products.map((product) => {
+                const displayPrice = getPrice(product.price);
+                const isB2B = user?.role === 'business';
+
+                return (
+                    <Card key={product.id} className="group cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border-stone-200">
+                    <div className="relative">
+                        <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        {product.badge && (
+                            <Badge className="absolute top-3 left-3 bg-bright-red-700 hover:bg-bright-red-800">
+                                {product.badge}
+                            </Badge>
+                        )}
+                        {product.discount && (
+                            <Badge className="absolute top-3 right-3 bg-green-600 hover:bg-green-700">
+                                {product.discount}
+                            </Badge>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                        <Button
+                        size="sm"
+                        className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white text-stone-900 hover:bg-stone-100"
+                        >
+                        <Heart className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <span className="text-sm text-stone-500">({product.reviews} reviews)</span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl font-bold text-stone-900">₹{product.price.toLocaleString()}</span>
-                    <span className="text-lg text-stone-500 line-through">₹{product.originalPrice.toLocaleString()}</span>
-                  </div>
-                  <Button className="w-full bg-bright-red-700 hover:bg-bright-red-800 text-white">
-                    Add to Cart
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <CardContent className="p-6">
+                        <h3 className="font-semibold text-lg text-stone-900 mb-2 line-clamp-2">{product.name}</h3>
+                        <div className="flex items-center gap-2 mb-3">
+                        {product.rating && (
+                            <div className="flex items-center gap-1">
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                <span className="text-sm font-medium">{product.rating}</span>
+                            </div>
+                        )}
+                        {product.reviews && (
+                             <span className="text-sm text-stone-500">({product.reviews} reviews)</span>
+                        )}
+                        </div>
+                        
+                        <div className="mb-4">
+                        <div className="flex items-center gap-2">
+                            <span className={`text-2xl font-bold ${isB2B ? 'text-blue-700' : 'text-stone-900'}`}>
+                            ₹{displayPrice.toLocaleString()}
+                            </span>
+                            {product.originalPrice && (
+                                <span className="text-lg text-stone-500 line-through">
+                                ₹{product.originalPrice.toLocaleString()}
+                                </span>
+                            )}
+                        </div>
+                        {isB2B && (
+                            <div className="text-xs text-blue-600 font-medium mt-1">
+                                Includes GST Input Credit & Bulk Discount
+                            </div>
+                        )}
+                        </div>
+
+                        <Button 
+                            onClick={() => addToCart({
+                                id: parseInt(product.id) || Date.now(), // Handle string IDs for cart
+                                name: product.name,
+                                price: displayPrice,
+                                originalPrice: product.originalPrice || displayPrice,
+                                image: product.image
+                            })}
+                            className="w-full bg-bright-red-700 hover:bg-bright-red-800 text-white"
+                        >
+                        Add to Cart
+                        </Button>
+                    </CardContent>
+                    </Card>
+                );
+                })}
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <Link to="/categories">

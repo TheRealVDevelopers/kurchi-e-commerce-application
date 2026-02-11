@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, Plus, Send, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,15 +13,28 @@ import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
 import CustomerSupport from '@/components/CustomerSupport';
 import { useApp } from '@/context/AppContext';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, query, where, onSnapshot, serverTimestamp, orderBy } from 'firebase/firestore';
+import { toast } from 'sonner';
+
+interface ProductRequest {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  image: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: any;
+}
 
 const Admin = () => {
-  /* 
-     REFACTORING NOTE:
-     We are removing the local 'productRequests' state and 'newProduct' logic here
-     and replacing it with the AppContext consumption. 
-  */
-  const { user, productRequests, addProductRequest } = useApp();
+  const { user } = useApp();
+  const [requests, setRequests] = useState<ProductRequest[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Form State
   const [newProduct, setNewProduct] = useState({
     name: '',
     category: '',
@@ -31,56 +43,75 @@ const Admin = () => {
     image: ''
   });
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const handleSubmitRequest = () => {
-    if (!newProduct.name || !newProduct.category || !newProduct.price) return;
-
-    addProductRequest({
-      name: newProduct.name,
-      category: newProduct.category,
-      price: parseInt(newProduct.price),
-      description: newProduct.description,
-      image: newProduct.image || 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop' // default image if empty
+  // 1. Listen to Real-Time Requests from Firestore
+  useEffect(() => {
+    // Managers can see ALL requests to track status
+    const q = query(collection(db, 'product_requests'), orderBy('requestedAt', 'desc'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedRequests = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as ProductRequest));
+      setRequests(fetchedRequests);
     });
 
-    setNewProduct({ name: '', category: '', price: '', description: '', image: '' });
-    setIsDialogOpen(false);
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Submit a New Request
+  const handleSubmitRequest = async () => {
+    if (!newProduct.name || !newProduct.price || !newProduct.category) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await addDoc(collection(db, 'product_requests'), {
+        name: newProduct.name,
+        category: newProduct.category,
+        price: Number(newProduct.price),
+        description: newProduct.description,
+        image: newProduct.image || 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
+        status: 'pending',
+        adminName: user?.name || 'Manager',
+        adminId: user?.uid,
+        requestedAt: serverTimestamp()
+      });
+
+      toast.success("Product request submitted for approval");
+      setNewProduct({ name: '', category: '', price: '', description: '', image: '' });
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error submitting request:", error);
+      toast.error("Failed to submit request");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case 'approved':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return null;
+      case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'approved': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
+      default: return null;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Filter requests for the current admin if you want (but for now show all)
-  // Or maybe filter only ones created by THIS admin? 
-  // For simplicity, let's show all requests so they can see status updates.
-
-  const pendingCount = productRequests.filter(req => req.status === 'pending').length;
-  const approvedCount = productRequests.filter(req => req.status === 'approved').length;
-  const rejectedCount = productRequests.filter(req => req.status === 'rejected').length;
+  const pendingCount = requests.filter(req => req.status === 'pending').length;
+  const approvedCount = requests.filter(req => req.status === 'approved').length;
+  const rejectedCount = requests.filter(req => req.status === 'rejected').length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
@@ -89,10 +120,10 @@ const Admin = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-bright-red-700 to-bright-red-800 bg-clip-text text-transparent mb-2">
-            Admin Dashboard
+            Manager Dashboard
           </h1>
           <p className="text-stone-600 text-lg">
-            Welcome back, {user?.name}. Manage product requests and support.
+            Welcome back, {user?.name || 'Manager'}. Manage inventory and support.
           </p>
         </div>
 
@@ -112,8 +143,7 @@ const Admin = () => {
                   <Package className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{productRequests.length}</div>
-                  <p className="text-xs text-muted-foreground">All time</p>
+                  <div className="text-2xl font-bold">{requests.length}</div>
                 </CardContent>
               </Card>
 
@@ -124,7 +154,6 @@ const Admin = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{pendingCount}</div>
-                  <p className="text-xs text-muted-foreground">Awaiting approval</p>
                 </CardContent>
               </Card>
 
@@ -135,7 +164,6 @@ const Admin = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{approvedCount}</div>
-                  <p className="text-xs text-muted-foreground">Ready for sale</p>
                 </CardContent>
               </Card>
 
@@ -146,117 +174,9 @@ const Admin = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{rejectedCount}</div>
-                  <p className="text-xs text-muted-foreground">Need revision</p>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Common administrative tasks</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="h-20 bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800 shadow-md transform transition hover:scale-105">
-                        <div className="text-center">
-                          <Plus className="h-6 w-6 mx-auto mb-2" />
-                          <span>Add New Product</span>
-                        </div>
-                      </Button>
-                    </DialogTrigger>
-                    {/* Reusing the same dialog content logic here would be redundant code if not careful, 
-                        but effectively we want this button to open the SAME dialog as the one in the Products tab.
-                        For simplicity in this step, let's just make it switch tabs or duplicate the dialog trigger logic.
-                        Actually, let's just render the dialog content again here or keep it simple.
-                        Correction: The original code didn't have the dialog WRAPPED around this button.
-                        I will just make this button switch tab to 'products' ideally, but I can't easily control tabs state from here without more state.
-                        I'll leave it as a direct trigger for now.
-                     */}
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>New Product Request</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="quick-name">Product Name</Label>
-                          <Input
-                            id="quick-name"
-                            value={newProduct.name}
-                            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                            placeholder="Enter product name"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="quick-category">Category</Label>
-                          <Select value={newProduct.category} onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="office">Office Chairs</SelectItem>
-                              <SelectItem value="sofas">Sofas</SelectItem>
-                              <SelectItem value="recliners">Recliners</SelectItem>
-                              <SelectItem value="beanbags">Bean Bags</SelectItem>
-                              <SelectItem value="dining">Dining Chairs</SelectItem>
-                              <SelectItem value="lounge">Lounge Chairs</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="quick-price">Price (₹)</Label>
-                          <Input
-                            id="quick-price"
-                            type="number"
-                            value={newProduct.price}
-                            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                            placeholder="Enter price"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="quick-image">Image URL</Label>
-                          <Input
-                            id="quick-image"
-                            value={newProduct.image}
-                            onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                            placeholder="Enter image URL"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="quick-description">Description</Label>
-                          <Textarea
-                            id="quick-description"
-                            value={newProduct.description}
-                            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                            placeholder="Enter product description"
-                          />
-                        </div>
-                        <Button onClick={handleSubmitRequest} className="w-full bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800">
-                          <Send className="h-4 w-4 mr-2" />
-                          Submit Request
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Button variant="outline" className="h-20">
-                    <div className="text-center">
-                      <AlertCircle className="h-6 w-6 mx-auto mb-2" />
-                      <span>Check Notifications</span>
-                    </div>
-                  </Button>
-                  <Button variant="outline" className="h-20">
-                    <div className="text-center">
-                      <Package className="h-6 w-6 mx-auto mb-2" />
-                      <span>Inventory Report</span>
-                    </div>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="products" className="space-y-6">
@@ -295,12 +215,10 @@ const Admin = () => {
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="office">Office Chairs</SelectItem>
-                            <SelectItem value="sofas">Sofas</SelectItem>
-                            <SelectItem value="recliners">Recliners</SelectItem>
-                            <SelectItem value="beanbags">Bean Bags</SelectItem>
-                            <SelectItem value="dining">Dining Chairs</SelectItem>
-                            <SelectItem value="lounge">Lounge Chairs</SelectItem>
+                            <SelectItem value="Office Chairs">Office Chairs</SelectItem>
+                            <SelectItem value="Sofas">Sofas</SelectItem>
+                            <SelectItem value="Recliners">Recliners</SelectItem>
+                            <SelectItem value="Bean Bags">Bean Bags</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -320,7 +238,7 @@ const Admin = () => {
                           id="image"
                           value={newProduct.image}
                           onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                          placeholder="Enter image URL"
+                          placeholder="https://..."
                         />
                       </div>
                       <div>
@@ -332,9 +250,9 @@ const Admin = () => {
                           placeholder="Enter product description"
                         />
                       </div>
-                      <Button onClick={handleSubmitRequest} className="w-full bg-gradient-to-r from-bright-red-600 to-bright-red-700 hover:from-bright-red-700 hover:to-bright-red-800">
+                      <Button onClick={handleSubmitRequest} disabled={isLoading} className="w-full bg-gradient-to-r from-bright-red-600 to-bright-red-700">
                         <Send className="h-4 w-4 mr-2" />
-                        Submit Request
+                        {isLoading ? 'Submitting...' : 'Submit Request'}
                       </Button>
                     </div>
                   </DialogContent>
@@ -345,36 +263,43 @@ const Admin = () => {
             {/* Product Requests List */}
             <Card>
               <CardHeader>
-                <CardTitle>Product Requests</CardTitle>
-                <CardDescription>Track all your product requests and their approval status</CardDescription>
+                <CardTitle>My Requests</CardTitle>
+                <CardDescription>Track the status of your submissions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {productRequests.map((request) => (
+                  {requests.map((request) => (
                     <div key={request.id} className="flex items-center justify-between p-6 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center space-x-4">
                         <img
                           src={request.image}
                           alt={request.name}
-                          className="w-20 h-20 object-cover rounded-lg border"
+                          className="w-16 h-16 object-cover rounded-lg border bg-stone-100"
                         />
                         <div>
                           <h3 className="font-semibold text-lg text-stone-800">{request.name}</h3>
-                          <p className="text-sm text-stone-600 mt-1">{request.description}</p>
-                          <p className="text-xl font-bold text-bright-red-700 mt-2">₹{request.price.toLocaleString()}</p>
-                          <p className="text-xs text-stone-500 mt-1">
-                            Requested on {new Date(request.requestedAt).toLocaleDateString()}
-                          </p>
+                          <p className="text-sm text-stone-600">{request.category}</p>
+                          <p className="text-sm font-bold text-bright-red-700">₹{request.price.toLocaleString()}</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        {getStatusIcon(request.status)}
-                        <Badge className={`${getStatusColor(request.status)} px-3 py-1`}>
-                          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                        </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(request.status)}
+                          <Badge className={`${getStatusColor(request.status)}`}>
+                            {request.status.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <span className="text-xs text-stone-400">
+                          ID: {request.id.slice(0,8)}
+                        </span>
                       </div>
                     </div>
                   ))}
+                  {requests.length === 0 && (
+                    <div className="text-center py-8 text-stone-500">
+                      No requests found. Start by adding one!
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -384,7 +309,6 @@ const Admin = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Customer Support</CardTitle>
-                <CardDescription>Manage customer inquiries and support requests</CardDescription>
               </CardHeader>
               <CardContent>
                 <CustomerSupport />

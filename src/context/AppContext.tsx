@@ -1,34 +1,56 @@
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { 
+  onAuthStateChanged, 
+  signOut, 
+  User as FirebaseUser 
+} from 'firebase/auth';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  doc, 
+  onSnapshot, 
+  query, 
+  orderBy,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
-export type UserRole = 'admin' | 'superadmin' | 'user';
+// Add 'business' to the UserRole type definition
+export type UserRole = 'admin' | 'superadmin' | 'user' | 'business';
 
 export interface User {
-    name: string;
+    uid: string;
+    email: string | null;
+    name: string | null;
     role: UserRole;
     avatar?: string;
+    gstNumber?: string;
 }
 
 export interface ProductRequest {
-    id: number;
+    id: string; 
     name: string;
     category: string;
     price: number;
     description: string;
     image: string;
     status: 'pending' | 'approved' | 'rejected';
-    requestedAt: string;
+    requestedAt: any;
     adminName: string;
+    adminId: string;
 }
 
 interface AppContextType {
     user: User | null;
-    login: (role: UserRole) => void;
-    logout: () => void;
+    loading: boolean;
+    logout: () => Promise<void>;
     productRequests: ProductRequest[];
-    addProductRequest: (request: Omit<ProductRequest, 'id' | 'status' | 'requestedAt' | 'adminName'>) => void;
-    updateRequestStatus: (id: number, status: 'approved' | 'rejected') => void;
+    addProductRequest: (request: Omit<ProductRequest, 'id' | 'status' | 'requestedAt' | 'adminName' | 'adminId'>) => Promise<void>;
+    updateRequestStatus: (id: string, status: 'approved' | 'rejected') => Promise<void>;
     pendingRequestsCount: number;
 }
 
@@ -36,63 +58,115 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [productRequests, setProductRequests] = useState<ProductRequest[]>([
-        {
-            id: 1,
-            name: 'Ergonomic Office Chair',
-            category: 'office',
-            price: 25999,
-            description: 'Premium ergonomic office chair with lumbar support',
-            image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=300&h=200&fit=crop',
-            status: 'pending',
-            requestedAt: '2024-06-01T10:00:00Z',
-            adminName: 'John Admin'
-        },
-        {
-            id: 2,
-            name: 'Luxury Sofa Set',
-            category: 'sofas',
-            price: 89999,
-            description: 'Premium 3-seater sofa with premium fabric',
-            image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&h=200&fit=crop',
-            status: 'approved',
-            requestedAt: '2024-05-30T14:30:00Z',
-            adminName: 'Sarah Admin'
+    const [loading, setLoading] = useState(true);
+    const [productRequests, setProductRequests] = useState<ProductRequest[]>([]);
+
+    // 1. Listen for Authentication Changes (THE MISSING PIECE)
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                // Fetch the user's role from a 'users' collection in Firestore
+                const userDocRef = doc(db, 'users', firebaseUser.uid);
+                
+                try {
+                    const userSnapshot = await getDoc(userDocRef);
+                    let role: UserRole = 'user';
+                    let gstNumber: string | undefined;
+
+                    if (userSnapshot.exists()) {
+                        const data = userSnapshot.data();
+                        role = data.role as UserRole;
+                        gstNumber = data.gstNumber;
+                    } else {
+                        // Create basic profile if it doesn't exist
+                        await setDoc(userDocRef, {
+                            email: firebaseUser.email,
+                            role: 'user',
+                            createdAt: serverTimestamp()
+                        });
+                    }
+
+                    setUser({
+                        uid: firebaseUser.uid,
+                        email: firebaseUser.email,
+                        name: firebaseUser.displayName || 'User',
+                        role: role,
+                        avatar: firebaseUser.photoURL || undefined,
+                        gstNumber
+                    });
+                } catch (error) {
+                    console.error("Error fetching user profile:", error);
+                }
+            } else {
+                setUser(null);
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // 2. Listen for Real-time Data (Product Requests)
+    useEffect(() => {
+        if (!user) {
+            setProductRequests([]);
+            return;
         }
-    ]);
 
-    const login = (role: UserRole) => {
-        const newUser: User = {
-            name: role === 'admin' ? 'John Admin' : 'Super Admin',
-            role: role,
-            avatar: 'https://github.com/shadcn.png'
-        };
-        setUser(newUser);
-        toast.success(`Logged in as ${newUser.name}`);
+        const q = query(collection(db, 'product_requests'), orderBy('requestedAt', 'desc'));
+        
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const requests = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as ProductRequest[];
+            
+            setProductRequests(requests);
+        }, (error) => {
+            console.error("Error fetching requests:", error);
+        });
+
+        return () => unsubscribe();
+    }, [user]);
+
+    const logout = async () => {
+        try {
+            await signOut(auth);
+            toast.info('Logged out successfully');
+        } catch (error) {
+            toast.error('Error logging out');
+        }
     };
 
-    const logout = () => {
-        setUser(null);
-        toast.info('Logged out successfully');
+    const addProductRequest = async (requestData: Omit<ProductRequest, 'id' | 'status' | 'requestedAt' | 'adminName' | 'adminId'>) => {
+        if (!user) {
+            toast.error("You must be logged in");
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, 'product_requests'), {
+                ...requestData,
+                status: 'pending',
+                requestedAt: serverTimestamp(),
+                adminName: user.name || user.email || 'Unknown',
+                adminId: user.uid
+            });
+            toast.success('Product request submitted successfully');
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to submit request');
+        }
     };
 
-    const addProductRequest = (requestData: Omit<ProductRequest, 'id' | 'status' | 'requestedAt' | 'adminName'>) => {
-        const newRequest: ProductRequest = {
-            id: Date.now(),
-            ...requestData,
-            status: 'pending',
-            requestedAt: new Date().toISOString(),
-            adminName: user?.name || 'Unknown Admin'
-        };
-        setProductRequests([newRequest, ...productRequests]);
-        toast.success('Product request submitted successfully');
-    };
-
-    const updateRequestStatus = (id: number, status: 'approved' | 'rejected') => {
-        setProductRequests(prev => prev.map(req =>
-            req.id === id ? { ...req, status } : req
-        ));
-        toast.success(`Request ${status}`);
+    const updateRequestStatus = async (id: string, status: 'approved' | 'rejected') => {
+        try {
+            const requestRef = doc(db, 'product_requests', id);
+            await updateDoc(requestRef, { status });
+            toast.success(`Request ${status}`);
+        } catch (error) {
+            toast.error(`Failed to update status`);
+        }
     };
 
     const pendingRequestsCount = productRequests.filter(req => req.status === 'pending').length;
@@ -100,14 +174,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return (
         <AppContext.Provider value={{
             user,
-            login,
+            loading,
             logout,
             productRequests,
             addProductRequest,
             updateRequestStatus,
             pendingRequestsCount
         }}>
-            {children}
+            {!loading && children}
         </AppContext.Provider>
     );
 };
