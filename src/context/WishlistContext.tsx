@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 
 interface WishlistContextType {
   wishlist: string[]; // Array of Product IDs
-  addToWishlist: (productId: string) => void;
-  removeFromWishlist: (productId: string) => void;
+  addToWishlist: (productId: string) => Promise<void>;
+  removeFromWishlist: (productId: string) => Promise<void>;
   isInWishlist: (productId: string) => boolean;
 }
 
@@ -30,15 +30,27 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addToWishlist = async (productId: string) => {
-    if (!user) return toast.error("Login to save items");
-    await setDoc(doc(db, 'users', user.uid, 'wishlist', productId), { addedAt: new Date() });
-    toast.success("Added to wishlist");
+    if (!user) {
+      toast.error("Please login to save items");
+      return;
+    }
+    try {
+      await setDoc(doc(db, 'users', user.uid, 'wishlist', productId), { addedAt: new Date() });
+      toast.success("Added to wishlist");
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+      toast.error("Failed to add item");
+    }
   };
 
   const removeFromWishlist = async (productId: string) => {
     if (!user) return;
-    await deleteDoc(doc(db, 'users', user.uid, 'wishlist', productId));
-    toast.success("Removed from wishlist");
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'wishlist', productId));
+      toast.success("Removed from wishlist");
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+    }
   };
 
   const isInWishlist = (id: string) => wishlist.includes(id);

@@ -10,8 +10,7 @@ import HeroSlider from '@/components/HeroSlider';
 import { useCart } from '@/context/CartContext';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, query, limit, where } from 'firebase/firestore';
-import { onSnapshot } from 'firebase/firestore'; // Import onSnapshot for real-time stock
+import { collection, getDocs, query, limit, onSnapshot } from 'firebase/firestore';
 
 // Define the interface for our Product data from Firestore
 interface Product {
@@ -33,7 +32,7 @@ interface Category {
   id: string;
   name: string;
   image: string;
-  count?: number; // Optional because we might calculate this dynamically
+  count?: number; 
 }
 
 const Index = () => {
@@ -45,15 +44,16 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 2. UPDATED FETCHING LOGIC: Real-time listeners for stock accuracy
   useEffect(() => {
+    let isMounted = true;
     setIsLoading(true);
     
-    // Listen to Products in real-time
+    // 1. Real-time Listener for Products
     const productsRef = collection(db, 'products');
     const q = query(productsRef, limit(8)); 
     
     const unsubProducts = onSnapshot(q, (snapshot) => {
+        if (!isMounted) return;
         const fetchedProducts = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -62,27 +62,39 @@ const Index = () => {
         setIsLoading(false);
     }, (error) => {
         console.error("Error fetching products:", error);
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
     });
 
-    // Fetch Categories (One-time fetch is fine for categories)
+    // 2. Fetch Categories
     const fetchCategories = async () => {
-        const categoriesRef = collection(db, 'categories');
-        const categorySnapshot = await getDocs(categoriesRef);
-        if (!categorySnapshot.empty) {
-          setCategories(categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
-        } else {
-          setCategories([
-            { id: 'cat1', name: 'Office Chairs', image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop' },
-            { id: 'cat2', name: 'Sofas', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop' },
-            { id: 'cat3', name: 'Recliners', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop' },
-            { id: 'cat4', name: 'Bean Bags', image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop' }
-          ]);
+        try {
+            const categoriesRef = collection(db, 'categories');
+            const categorySnapshot = await getDocs(categoriesRef);
+            
+            if (!isMounted) return;
+
+            if (!categorySnapshot.empty) {
+                setCategories(categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
+            } else {
+                // Fallback static data if DB is empty
+                setCategories([
+                    { id: 'cat1', name: 'Office Chairs', image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop' },
+                    { id: 'cat2', name: 'Sofas', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop' },
+                    { id: 'cat3', name: 'Recliners', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop' },
+                    { id: 'cat4', name: 'Bean Bags', image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop' }
+                ]);
+            }
+        } catch (error) {
+            console.error("Error fetching categories:", error);
         }
     };
 
     fetchCategories();
-    return () => unsubProducts(); // Cleanup listener
+
+    return () => {
+        isMounted = false;
+        unsubProducts(); 
+    };
   }, []);
 
   const getPrice = (originalPrice: number) => {
@@ -90,6 +102,13 @@ const Index = () => {
       return Math.floor(originalPrice * 0.82);
     }
     return originalPrice;
+  };
+
+  // Helper to handle adding to cart with correct type
+  const handleAddToCart = (product: Product) => {
+    // We spread the product properties and explicitly add quantity: 1
+    // to satisfy the CartItem interface
+    addToCart({ ...product, quantity: 1 });
   };
 
   return (
@@ -137,9 +156,6 @@ const Index = () => {
               <Link to="/cart">
                 <Button variant="ghost" size="sm" className="relative text-stone-600 hover:text-bright-red-700">
                   <ShoppingCart className="h-5 w-5" />
-                  {/* Now we can use the real cart context if we wanted to show count, 
-                      but for this file snippet we keep it simple or hook up cart count */}
-                   {/* Optional: Add Cart Count Badge Here if passed from CartContext */}
                 </Button>
               </Link>
               
@@ -189,7 +205,6 @@ const Index = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
                         <h3 className="font-semibold text-lg text-stone-900 mb-2">{category.name}</h3>
-                        {/* We hide count if not available in DB yet */}
                         {category.count !== undefined && (
                             <p className="text-stone-600">{category.count} Products</p>
                         )}
@@ -290,7 +305,7 @@ const Index = () => {
 
                         {product.stock > 0 ? (
                                 <Button 
-                                  onClick={() => addToCart(product)}
+                                  onClick={() => handleAddToCart(product)}
                                   className="w-full bg-bright-red-600"
                                 >
                                   Add to Cart
