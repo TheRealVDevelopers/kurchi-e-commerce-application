@@ -11,6 +11,7 @@ import { useCart } from '@/context/CartContext';
 import { useApp } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, limit, where } from 'firebase/firestore';
+import { onSnapshot } from 'firebase/firestore'; // Import onSnapshot for real-time stock
 
 // Define the interface for our Product data from Firestore
 interface Product {
@@ -24,6 +25,7 @@ interface Product {
   category: string;
   badge?: string;
   discount?: string;
+  stock: number;
 }
 
 // Define interface for Category data
@@ -38,70 +40,53 @@ const Index = () => {
   const { user } = useApp();
   const { addToCart } = useCart();
   
-  // State for dynamic data
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch Data from Firestore on Component Mount
+  // 2. UPDATED FETCHING LOGIC: Real-time listeners for stock accuracy
   useEffect(() => {
-    const fetchStoreData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // 1. Fetch Products
-        const productsRef = collection(db, 'products');
-        // We limit to 8 for the "Featured" section for performance
-        const q = query(productsRef, limit(8)); 
-        const productSnapshot = await getDocs(q);
-        
-        const fetchedProducts: Product[] = productSnapshot.docs.map(doc => ({
+    setIsLoading(true);
+    
+    // Listen to Products in real-time
+    const productsRef = collection(db, 'products');
+    const q = query(productsRef, limit(8)); 
+    
+    const unsubProducts = onSnapshot(q, (snapshot) => {
+        const fetchedProducts = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         } as Product));
-
         setProducts(fetchedProducts);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching products:", error);
+        setIsLoading(false);
+    });
 
-        // 2. Fetch Categories (Or generate them if you don't have a separate collection yet)
-        // ideally you should have a 'categories' collection. 
-        // For now, I'll try to fetch from 'categories' collection, 
-        // but if empty, I'll fallback to a smart generation from the products to prevent a blank screen during dev.
+    // Fetch Categories (One-time fetch is fine for categories)
+    const fetchCategories = async () => {
         const categoriesRef = collection(db, 'categories');
         const categorySnapshot = await getDocs(categoriesRef);
-        
         if (!categorySnapshot.empty) {
-          const fetchedCategories = categorySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Category));
-          setCategories(fetchedCategories);
+          setCategories(categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
         } else {
-            // Fallback: If no categories collection exists yet, hardcode the basic structure 
-            // but count products dynamically. This is a safety net.
-            const baseCategories = [
-                { id: 'cat1', name: 'Office Chairs', image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop' },
-                { id: 'cat2', name: 'Sofas', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop' },
-                { id: 'cat3', name: 'Recliners', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop' },
-                { id: 'cat4', name: 'Bean Bags', image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop' }
-            ];
-            setCategories(baseCategories);
+          setCategories([
+            { id: 'cat1', name: 'Office Chairs', image: 'https://images.unsplash.com/photo-1541558869434-2840d308329a?w=400&h=300&fit=crop' },
+            { id: 'cat2', name: 'Sofas', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop' },
+            { id: 'cat3', name: 'Recliners', image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop' },
+            { id: 'cat4', name: 'Bean Bags', image: 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop' }
+          ]);
         }
-
-      } catch (error) {
-        console.error("Error fetching store data:", error);
-      } finally {
-        setIsLoading(false);
-      }
     };
 
-    fetchStoreData();
+    fetchCategories();
+    return () => unsubProducts(); // Cleanup listener
   }, []);
 
-  // Helper to calculate price based on role
   const getPrice = (originalPrice: number) => {
     if (user?.role === 'business') {
-      // Apply 18% discount/tax credit for B2B
       return Math.floor(originalPrice * 0.82);
     }
     return originalPrice;
@@ -303,18 +288,21 @@ const Index = () => {
                         )}
                         </div>
 
-                        <Button 
-                            onClick={() => addToCart({
-                                id: parseInt(product.id) || Date.now(), // Handle string IDs for cart
-                                name: product.name,
-                                price: displayPrice,
-                                originalPrice: product.originalPrice || displayPrice,
-                                image: product.image
-                            })}
-                            className="w-full bg-bright-red-700 hover:bg-bright-red-800 text-white"
-                        >
-                        Add to Cart
-                        </Button>
+                        {product.stock > 0 ? (
+                                <Button 
+                                  onClick={() => addToCart(product)}
+                                  className="w-full bg-bright-red-600"
+                                >
+                                  Add to Cart
+                                </Button>
+                              ) : (
+                                <Button 
+                                  disabled 
+                                  className="w-full bg-stone-300 text-stone-600 cursor-not-allowed"
+                                >
+                                  Out of Stock
+                                </Button>
+                              )}
                     </CardContent>
                     </Card>
                 );

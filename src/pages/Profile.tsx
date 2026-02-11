@@ -1,51 +1,48 @@
 import { useState, useEffect } from 'react';
-import { User, Package, MapPin, CreditCard, Settings, HelpCircle, LogOut, Loader2 } from 'lucide-react';
+import { User, Package, MapPin, Settings, LogOut, Loader2, Heart, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import AddressBook from '@/components/AddressBook';
-import AccountSettings from '@/components/AccountSettings';
 import { Label } from '@/components/ui/label';
 import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
+import AddressBook from '@/components/AddressBook';
+import AccountSettings from '@/components/AccountSettings';
+import WishlistPage from './Wishlist'; // Importing the page we just made to embed it
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '@/context/AppContext'; // <--- Connects to Real User
-import { db } from '@/lib/firebase'; // <--- Connects to Real DB
+import { useApp } from '@/context/AppContext';
+import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
-// Define what an Order looks like coming from DB
 interface Order {
   id: string;
   items: any[];
   amount: number;
   status: string;
   createdAt: any;
-  orderType: string;
+  shippingAddress?: any;
 }
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, logout } = useApp(); // Get real user
-  const [activeTab, setActiveTab] = useState('profile');
+  const { user, logout } = useApp();
+  const [activeTab, setActiveTab] = useState('orders'); // Default to orders
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    }
+    if (!user) navigate('/login');
   }, [user, navigate]);
 
-  // Fetch Real Orders from Firestore
+  // Fetch Real Orders
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user?.uid) return;
       
       setLoadingOrders(true);
       try {
-        // Query: "Give me orders where userId equals MY ID"
         const q = query(
           collection(db, 'orders'),
           where('userId', '==', user.uid),
@@ -79,50 +76,47 @@ const Profile = () => {
   const menuItems = [
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'orders', label: 'My Orders', icon: Package },
+    { id: 'wishlist', label: 'Wishlist', icon: Heart }, // Added Wishlist
     { id: 'addresses', label: 'Addresses', icon: MapPin },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  if (!user) return null; // Prevent flash of content
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
+    <div className="min-h-screen bg-stone-50 pb-20">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
+          
+          {/* --- SIDEBAR NAVIGATION --- */}
           <div className="lg:col-span-1">
-            <Card>
-              <CardHeader className="text-center">
-                <div className="w-20 h-20 bg-bright-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Card className="sticky top-24">
+              <CardHeader className="text-center pb-2">
+                <div className="w-20 h-20 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white shadow-sm">
                   {user.avatar ? (
                     <img src={user.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   ) : (
-                    <User className="h-10 w-10 text-bright-red-700" />
+                    <span className="text-2xl font-bold text-stone-400">{user.name?.charAt(0).toUpperCase()}</span>
                   )}
                 </div>
-                <CardTitle>{user.name || 'Valued Customer'}</CardTitle>
-                <p className="text-stone-600 text-sm">{user.email}</p>
-                {user.role === 'business' && (
-                  <Badge className="mt-2 bg-blue-100 text-blue-800 hover:bg-blue-200">
-                    Business Account
-                  </Badge>
-                )}
+                <CardTitle className="text-lg">{user.name || 'Valued Customer'}</CardTitle>
+                <p className="text-stone-500 text-xs">{user.email}</p>
+                <div className="mt-2">
+                    <Badge variant="outline" className="uppercase text-[10px] tracking-wider">{user.role}</Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <nav className="space-y-2">
+                <nav className="space-y-1">
                   {menuItems.map((item) => (
                     <Button
                       key={item.id}
-                      variant={activeTab === item.id ? "default" : "ghost"}
-                      className={`w-full justify-start ${activeTab === item.id
-                        ? "bg-bright-red-700 hover:bg-bright-red-800 text-white"
-                        : "hover:bg-stone-100"
-                        }`}
+                      variant={activeTab === item.id ? "secondary" : "ghost"}
+                      className={`w-full justify-start ${activeTab === item.id ? "bg-stone-100 font-semibold" : "text-stone-600"}`}
                       onClick={() => setActiveTab(item.id)}
                     >
-                      <item.icon className="h-4 w-4 mr-2" />
+                      <item.icon className="h-4 w-4 mr-3" />
                       {item.label}
                     </Button>
                   ))}
@@ -133,7 +127,7 @@ const Profile = () => {
                         className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={handleLogout}
                     >
-                        <LogOut className="h-4 w-4 mr-2" />
+                        <LogOut className="h-4 w-4 mr-3" />
                         Logout
                     </Button>
                   </div>
@@ -142,8 +136,10 @@ const Profile = () => {
             </Card>
           </div>
 
-          {/* Main Content */}
+          {/* --- MAIN CONTENT AREA --- */}
           <div className="lg:col-span-3">
+            
+            {/* 1. PROFILE INFO */}
             {activeTab === 'profile' && (
               <Card>
                 <CardHeader>
@@ -151,23 +147,22 @@ const Profile = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                    <div className="space-y-2">
                       <Label>Full Name</Label>
                       <Input defaultValue={user.name || ''} readOnly className="bg-stone-50" />
                     </div>
-                    <div>
+                    <div className="space-y-2">
                       <Label>Email</Label>
                       <Input defaultValue={user.email || ''} readOnly className="bg-stone-50" />
                     </div>
-                    <div>
-                      <Label>Role</Label>
-                      <Input defaultValue={user.role.toUpperCase()} readOnly className="bg-stone-50" />
+                    <div className="space-y-2">
+                      <Label>Account Type</Label>
+                      <Input defaultValue={user.role === 'business' ? 'Business Account (B2B)' : 'Personal Account'} readOnly className="bg-stone-50" />
                     </div>
-                    {/* Only show GST for business users */}
                     {user.role === 'business' && (
-                         <div>
+                         <div className="space-y-2">
                             <Label>GST Number</Label>
-                            <Input defaultValue={user.gstNumber || 'N/A'} readOnly className="bg-blue-50 border-blue-200" />
+                            <Input defaultValue={user.gstNumber || 'Not Provided'} readOnly className="bg-blue-50 border-blue-200 text-blue-800" />
                          </div>
                     )}
                   </div>
@@ -175,6 +170,7 @@ const Profile = () => {
               </Card>
             )}
 
+            {/* 2. ORDER HISTORY */}
             {activeTab === 'orders' && (
               <Card>
                 <CardHeader>
@@ -182,40 +178,53 @@ const Profile = () => {
                 </CardHeader>
                 <CardContent>
                   {loadingOrders ? (
-                    <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-bright-red-600" />
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-stone-400" />
                     </div>
                   ) : orders.length === 0 ? (
-                    <div className="text-center py-8 text-stone-500">
-                        No orders found. Time to go shopping!
+                    <div className="text-center py-12 bg-stone-50 rounded-lg border border-dashed">
+                        <Package className="h-12 w-12 mx-auto text-stone-300 mb-2" />
+                        <p className="text-stone-500">No orders yet.</p>
+                        <Button variant="link" onClick={() => navigate('/')}>Start Shopping</Button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {orders.map((order) => (
-                        <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-stone-900">Order #{order.id.slice(0, 8)}</h3>
-                                {order.orderType === 'B2B' && <Badge variant="outline" className="text-blue-600 border-blue-200 text-[10px]">B2B</Badge>}
+                        <div key={order.id} className="border rounded-lg p-4 hover:border-stone-400 transition-colors">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pb-4 border-b">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-stone-900">Order #{order.id.slice(0, 8)}</h3>
+                                    <Badge className={
+                                        order.status === 'delivered' ? 'bg-green-600' :
+                                        order.status === 'shipped' ? 'bg-blue-600' : 
+                                        'bg-orange-500'
+                                    }>
+                                        {order.status.toUpperCase()}
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-stone-500 mt-1">
+                                    Placed on {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : 'Date N/A'}
+                                </p>
                             </div>
-                            <p className="text-sm text-stone-500">
-                                {new Date(order.createdAt?.seconds * 1000).toLocaleDateString()}
-                            </p>
-                            <p className="text-sm text-stone-600 mt-1">
-                                {order.items.length} item(s): {order.items.map(i => i.name).join(', ')}
-                            </p>
+                            <div className="text-right mt-2 sm:mt-0">
+                                <p className="text-lg font-bold">₹{order.amount.toLocaleString()}</p>
+                            </div>
                           </div>
-                          <div className="text-right mt-2 sm:mt-0">
-                            <p className="font-bold text-lg">₹{order.amount.toLocaleString()}</p>
-                            <Badge
-                              className={
-                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }
-                            >
-                              {order.status.toUpperCase()}
-                            </Badge>
+                          
+                          <div className="space-y-2">
+                              {order.items.map((item: any, idx: number) => (
+                                  <div key={idx} className="flex justify-between text-sm">
+                                      <span className="text-stone-600">{item.quantity}x {item.name}</span>
+                                      <span className="font-medium">₹{(item.price * item.quantity).toLocaleString()}</span>
+                                  </div>
+                              ))}
+                          </div>
+                          
+                          <div className="mt-4 pt-2 border-t flex justify-end">
+                              <Button variant="outline" size="sm" onClick={() => navigate('/track-order')}>
+                                  Track Order <ArrowRight className="w-3 h-3 ml-2" />
+                              </Button>
                           </div>
                         </div>
                       ))}
@@ -225,15 +234,15 @@ const Profile = () => {
               </Card>
             )}
 
-            {/* REPLACE THIS SECTION */}
-{activeTab === 'addresses' && (
-  <AddressBook />
-)}
+            {/* 3. ADDRESS BOOK */}
+            {activeTab === 'addresses' && <AddressBook />}
 
-{/* REPLACE THIS SECTION */}
-{activeTab === 'settings' && (
-  <AccountSettings />
-)}
+            {/* 4. WISHLIST (Embedded) */}
+            {activeTab === 'wishlist' && <WishlistPage embedded />}
+
+            {/* 5. ACCOUNT SETTINGS */}
+            {activeTab === 'settings' && <AccountSettings />}
+
           </div>
         </div>
       </div>

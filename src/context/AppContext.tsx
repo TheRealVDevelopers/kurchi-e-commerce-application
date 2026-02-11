@@ -19,14 +19,16 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
-// Add 'business' to the UserRole type definition
+// Updated Role & Status Types
 export type UserRole = 'admin' | 'superadmin' | 'user' | 'business';
+export type UserStatus = 'active' | 'pending' | 'rejected';
 
 export interface User {
     uid: string;
     email: string | null;
     name: string | null;
     role: UserRole;
+    status: UserStatus; // <--- ADDED STATUS
     avatar?: string;
     gstNumber?: string;
 }
@@ -61,69 +63,64 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const [productRequests, setProductRequests] = useState<ProductRequest[]>([]);
 
-    // 1. Listen for Authentication Changes (THE MISSING PIECE)
+    // 1. Unified Auth & Profile Listener
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                // Fetch the user's role from a 'users' collection in Firestore
                 const userDocRef = doc(db, 'users', firebaseUser.uid);
                 
                 try {
-                    const userSnapshot = await getDoc(userDocRef);
-                    let role: UserRole = 'user';
-                    let gstNumber: string | undefined;
-
-                    if (userSnapshot.exists()) {
-                        const data = userSnapshot.data();
-                        role = data.role as UserRole;
-                        gstNumber = data.gstNumber;
-                    } else {
-                        // Create basic profile if it doesn't exist
-                        await setDoc(userDocRef, {
-                            email: firebaseUser.email,
-                            role: 'user',
-                            createdAt: serverTimestamp()
-                        });
-                    }
-
-                    setUser({
-                        uid: firebaseUser.uid,
-                        email: firebaseUser.email,
-                        name: firebaseUser.displayName || 'User',
-                        role: role,
-                        avatar: firebaseUser.photoURL || undefined,
-                        gstNumber
+                    // Fetch real-time profile updates (so if HQ approves them, they gain access instantly)
+                    const unsubProfile = onSnapshot(userDocRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            setUser({
+                                uid: firebaseUser.uid,
+                                email: firebaseUser.email,
+                                name: data.name || firebaseUser.displayName || 'User',
+                                role: data.role as UserRole,
+                                status: (data.status as UserStatus) || 'active', // Default to active for customers
+                                avatar: firebaseUser.photoURL || undefined,
+                                gstNumber: data.gstNumber
+                            });
+                        } else {
+                            // Document doesn't exist (handled by the Login application form logic)
+                            setUser(null);
+                        }
+                        setLoading(false);
                     });
+
+                    return () => unsubProfile();
                 } catch (error) {
                     console.error("Error fetching user profile:", error);
+                    setLoading(false);
                 }
             } else {
                 setUser(null);
+                setLoading(false);
             }
-            setLoading(false);
         });
 
         return () => unsubscribe();
     }, []);
 
-    // 2. Listen for Real-time Data (Product Requests)
+    // 2. Product Requests Listener (Only for Staff)
     useEffect(() => {
-        if (!user) {
+        if (!user || !['admin', 'superadmin'].includes(user.role) || user.status !== 'active') {
             setProductRequests([]);
             return;
         }
 
         const q = query(collection(db, 'product_requests'), orderBy('requestedAt', 'desc'));
-        
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const requests = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             })) as ProductRequest[];
-            
             setProductRequests(requests);
         }, (error) => {
-            console.error("Error fetching requests:", error);
+            // Silently fail if permissions aren't ready yet
+            console.warn("Snapshot listener restricted by rules.");
         });
 
         return () => unsubscribe();
@@ -132,6 +129,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const logout = async () => {
         try {
             await signOut(auth);
+            setUser(null);
             toast.info('Logged out successfully');
         } catch (error) {
             toast.error('Error logging out');
@@ -139,11 +137,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const addProductRequest = async (requestData: Omit<ProductRequest, 'id' | 'status' | 'requestedAt' | 'adminName' | 'adminId'>) => {
-        if (!user) {
-            toast.error("You must be logged in");
-            return;
-        }
-
+        if (!user) return;
         try {
             await addDoc(collection(db, 'product_requests'), {
                 ...requestData,
@@ -152,17 +146,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 adminName: user.name || user.email || 'Unknown',
                 adminId: user.uid
             });
-            toast.success('Product request submitted successfully');
+            toast.success('Product request submitted to HQ');
         } catch (error) {
-            console.error(error);
             toast.error('Failed to submit request');
         }
     };
 
     const updateRequestStatus = async (id: string, status: 'approved' | 'rejected') => {
         try {
-            const requestRef = doc(db, 'product_requests', id);
-            await updateDoc(requestRef, { status });
+            await updateDoc(doc(db, 'product_requests', id), { status });
             toast.success(`Request ${status}`);
         } catch (error) {
             toast.error(`Failed to update status`);
@@ -181,6 +173,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             updateRequestStatus,
             pendingRequestsCount
         }}>
+            {/* We only show the app once the initial auth/profile check is done */}
             {!loading && children}
         </AppContext.Provider>
     );
