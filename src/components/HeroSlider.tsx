@@ -21,7 +21,7 @@ interface SlideProduct {
 }
 
 // Accent colors that cycle per slide for visual variety
-const ACCENTS = ['#c93922', '#8c0000', '#b30000'];
+const ACCENTS = ['#8B6914', '#6B4F10', '#A07818'];
 
 const HeroSlider = () => {
   const [slides, setSlides] = useState<SlideProduct[]>([]);
@@ -118,7 +118,7 @@ const HeroSlider = () => {
         className="w-full rounded-3xl bg-stone-900 flex items-center justify-center"
         style={{ minHeight: 520 }}
       >
-        <Loader2 className="w-8 h-8 animate-spin text-stone-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-warm-500" />
       </div>
     );
   }
@@ -398,4 +398,4 @@ const HeroSlider = () => {
   );
 };
 
-export default HeroSlider;
+export default HeroSlider;  

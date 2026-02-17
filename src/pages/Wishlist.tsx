@@ -37,16 +37,16 @@ const Wishlist = ({ embedded = false }: { embedded?: boolean }) => {
         setLoading(true);
         // Firestore 'in' query supports up to 10 items. 
         // We slice to 10 to prevent crashes if a user somehow has more.
-        const idsToCheck = wishlist.slice(0, 10); 
-        
+        const idsToCheck = wishlist.slice(0, 10);
+
         if (idsToCheck.length > 0) {
-            const q = query(collection(db, 'products'), where(documentId(), 'in', idsToCheck));
-            const snap = await getDocs(q);
-            const fetchedProducts = snap.docs.map(d => ({ 
-                id: d.id, 
-                ...d.data() 
-            } as WishlistProduct));
-            setProducts(fetchedProducts);
+          const q = query(collection(db, 'products'), where(documentId(), 'in', idsToCheck));
+          const snap = await getDocs(q);
+          const fetchedProducts = snap.docs.map(d => ({
+            id: d.id,
+            ...d.data()
+          } as WishlistProduct));
+          setProducts(fetchedProducts);
         }
       } catch (error) {
         console.error("Error fetching wishlist:", error);
@@ -75,12 +75,12 @@ const Wishlist = ({ embedded = false }: { embedded?: boolean }) => {
           {products.map((product) => (
             <Card key={product.id} className="group relative overflow-hidden">
               <div className="aspect-square overflow-hidden bg-stone-100 relative">
-                <img 
-                    src={product.image} 
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <button 
+                <button
                   onClick={() => removeFromWishlist(product.id)}
                   className="absolute top-2 right-2 bg-white/90 p-2 rounded-full text-stone-400 hover:text-red-500 hover:bg-white transition-colors shadow-sm"
                   title="Remove from wishlist"
@@ -92,15 +92,15 @@ const Wishlist = ({ embedded = false }: { embedded?: boolean }) => {
                 <h3 className="font-semibold truncate text-stone-900">{product.name}</h3>
                 <p className="text-stone-600 mb-4 font-medium">₹{product.price.toLocaleString()}</p>
                 <Button className="w-full bg-stone-900 hover:bg-black" onClick={() => {
-                   addToCart({ 
-                       id: product.id, 
-                       name: product.name, 
-                       price: product.price, 
-                       image: product.image, 
-                       quantity: 1 
-                   });
-                   removeFromWishlist(product.id); // Optional: Remove after adding to cart
-                   toast.success("Moved to Cart");
+                  addToCart({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    image: product.image,
+                    quantity: 1
+                  });
+                  removeFromWishlist(product.id); // Optional: Remove after adding to cart
+                  toast.success("Moved to Cart");
                 }}>
                   <ShoppingCart className="w-4 h-4 mr-2" /> Add to Cart
                 </Button>
@@ -115,7 +115,7 @@ const Wishlist = ({ embedded = false }: { embedded?: boolean }) => {
   if (embedded) return Content;
 
   return (
-    <div className="min-h-screen bg-stone-50 pb-20">
+    <div className="min-h-screen bg-cream pb-20">
       <Header />
       {Content}
       <MobileNavigation />

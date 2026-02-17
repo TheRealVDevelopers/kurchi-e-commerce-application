@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import { AppProvider } from "./context/AppContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext"; // <--- 1. IMPORT THIS
+import { ProductModalProvider } from "./context/ProductModalContext";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -34,42 +35,44 @@ const App = () => (
       <AppProvider>
         <CartProvider>
           <WishlistProvider> {/* <--- 3. WRAP APP WITH WISHLIST PROVIDER */}
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/new-arrivals" element={<NewArrivals />} />
-                <Route path="/offers" element={<Offers />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/wishlist" element={<Wishlist />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/order-success" element={<OrderSuccess />} />
-                {/* 4. ADD TRACK ORDER ROUTE */}
-                <Route path="/track-order" element={<TrackOrder />} />
+            <ProductModalProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/new-arrivals" element={<NewArrivals />} />
+                  <Route path="/offers" element={<Offers />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/wishlist" element={<Wishlist />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/order-success" element={<OrderSuccess />} />
+                  {/* 4. ADD TRACK ORDER ROUTE */}
+                  <Route path="/track-order" element={<TrackOrder />} />
 
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-                      <Admin />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/super-admin"
-                  element={
-                    <ProtectedRoute allowedRoles={['superadmin']}>
-                      <SuperAdmin />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                        <Admin />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/super-admin"
+                    element={
+                      <ProtectedRoute allowedRoles={['superadmin']}>
+                        <SuperAdmin />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </ProductModalProvider>
           </WishlistProvider> {/* <--- CLOSE WISHLIST PROVIDER */}
         </CartProvider>
       </AppProvider>

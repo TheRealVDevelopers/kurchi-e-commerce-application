@@ -38,8 +38,8 @@ const Header = () => {
         className={cn(
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
           scrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.07)]'
-            : 'bg-white'
+            ? 'bg-[#FAF8F5]/95 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.06)]'
+            : 'bg-[#FAF8F5]'
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,8 +61,8 @@ const Header = () => {
                   className={cn(
                     'relative px-4 py-2 text-sm font-medium rounded-full transition-colors duration-200',
                     isActive(path)
-                      ? 'text-stone-900 bg-stone-100'
-                      : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'
+                      ? 'text-stone-900 bg-warm-50'
+                      : 'text-stone-500 hover:text-stone-900 hover:bg-warm-50/60'
                   )}
                 >
                   {label}
@@ -74,14 +74,14 @@ const Header = () => {
             <div className="flex items-center gap-0.5">
               <Link
                 to="/categories"
-                className="hidden md:flex w-9 h-9 items-center justify-center rounded-full text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                className="hidden md:flex w-9 h-9 items-center justify-center rounded-full text-stone-500 hover:text-stone-900 hover:bg-warm-50 transition-colors"
               >
                 <Search className="w-[17px] h-[17px]" />
               </Link>
 
               <Link
                 to="/wishlist"
-                className="w-9 h-9 flex items-center justify-center rounded-full text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-stone-500 hover:text-stone-900 hover:bg-warm-50 transition-colors"
               >
                 <Heart className="w-[17px] h-[17px]" />
               </Link>
@@ -89,13 +89,13 @@ const Header = () => {
               {/* Cart — live count badge */}
               <Link
                 to="/cart"
-                className="relative w-9 h-9 flex items-center justify-center rounded-full text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors"
+                className="relative w-9 h-9 flex items-center justify-center rounded-full text-stone-500 hover:text-stone-900 hover:bg-warm-50 transition-colors"
               >
                 <ShoppingCart className="w-[17px] h-[17px]" />
                 {cartCount > 0 && (
                   <span
                     key={cartCount}
-                    className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-[3px] rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center leading-none"
+                    className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-[3px] rounded-full bg-warm-600 text-white text-[9px] font-bold flex items-center justify-center leading-none"
                     style={{ animation: 'badgePop 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}
                   >
                     {cartCount > 99 ? '99+' : cartCount}
@@ -106,7 +106,7 @@ const Header = () => {
               {/* Profile pill */}
               <Link
                 to={user ? '/profile' : '/login'}
-                className="hidden md:flex items-center gap-2 ml-2 pl-2.5 pr-3.5 h-9 rounded-full border border-stone-200 hover:border-stone-300 bg-white hover:bg-stone-50 transition-colors text-sm font-medium text-stone-700"
+                className="hidden md:flex items-center gap-2 ml-2 pl-2.5 pr-3.5 h-9 rounded-full border border-stone-200 hover:border-warm-300 bg-white hover:bg-warm-50 transition-colors text-sm font-medium text-stone-700"
               >
                 {user?.avatar ? (
                   <img src={user.avatar} className="w-5 h-5 rounded-full object-cover ring-1 ring-stone-200" alt="" />
@@ -122,7 +122,7 @@ const Header = () => {
 
               {/* Mobile hamburger */}
               <button
-                className="md:hidden w-9 h-9 flex items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 transition-colors ml-1"
+                className="md:hidden w-9 h-9 flex items-center justify-center rounded-full text-stone-500 hover:bg-warm-50 transition-colors ml-1"
                 onClick={() => setMenuOpen(v => !v)}
               >
                 {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -139,7 +139,7 @@ const Header = () => {
           )}
           style={{ borderTop: menuOpen ? '1px solid #f5f5f4' : 'none' }}
         >
-          <nav className="px-4 py-3 bg-white flex flex-col gap-0.5">
+          <nav className="px-4 py-3 bg-[#FAF8F5] flex flex-col gap-0.5">
             {navLinks.map(({ label, path }) => (
               <Link
                 key={path}
@@ -147,8 +147,8 @@ const Header = () => {
                 className={cn(
                   'flex items-center px-4 py-3 rounded-xl text-[15px] font-medium transition-colors',
                   isActive(path)
-                    ? 'bg-stone-100 text-stone-900'
-                    : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
+                    ? 'bg-warm-50 text-stone-900'
+                    : 'text-stone-600 hover:bg-warm-50/60 hover:text-stone-900'
                 )}
               >
                 {label}

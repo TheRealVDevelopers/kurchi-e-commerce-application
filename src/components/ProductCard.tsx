@@ -99,7 +99,7 @@ const ProductCard = (product: ProductCardProps) => {
                         </span>
                     )}
                     {!outOfStock && product.badge && (
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-600 text-white">
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-warm-600 text-white">
                             {product.badge}
                         </span>
                     )}
@@ -117,8 +117,8 @@ const ProductCard = (product: ProductCardProps) => {
                         'absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200',
                         'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0',
                         wishlisted
-                            ? 'bg-red-50 text-red-500'
-                            : 'bg-white/90 backdrop-blur-sm text-stone-400 hover:text-red-500 hover:bg-red-50'
+                            ? 'bg-warm-50 text-warm-600'
+                            : 'bg-white/90 backdrop-blur-sm text-stone-400 hover:text-warm-600 hover:bg-warm-50'
                     )}
                     aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                 >
@@ -149,7 +149,7 @@ const ProductCard = (product: ProductCardProps) => {
 
                 {/* Name */}
                 <h3
-                    className="text-[15px] font-semibold text-stone-900 leading-snug mb-2 line-clamp-2 cursor-pointer hover:text-red-700 transition-colors"
+                    className="text-[15px] font-semibold text-stone-900 leading-snug mb-2 line-clamp-2 cursor-pointer hover:text-warm-700 transition-colors"
                     onClick={handleQuickView}
                 >
                     {product.name}
@@ -201,7 +201,7 @@ const ProductCard = (product: ProductCardProps) => {
                                 ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
                                 : adding
                                     ? 'bg-green-600 text-white scale-95'
-                                    : 'bg-stone-900 text-white hover:bg-red-700 hover:scale-105 active:scale-95'
+                                    : 'bg-stone-900 text-white hover:bg-warm-700 hover:scale-105 active:scale-95'
                         )}
                     >
                         {adding ? (

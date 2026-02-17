@@ -17,7 +17,7 @@ const MobileNavigation = () => {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-100">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FAF8F5] border-t border-stone-200/60">
       {/* Safe area padding for modern phones */}
       <div className="flex items-stretch justify-around px-1" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {navItems.map((item) => {
@@ -32,7 +32,7 @@ const MobileNavigation = () => {
             >
               {/* Active pill background */}
               {isActive && (
-                <span className="absolute inset-x-2 top-1.5 bottom-1.5 rounded-xl bg-stone-100" />
+                <span className="absolute inset-x-2 top-1.5 bottom-1.5 rounded-xl bg-warm-50" />
               )}
 
               <span className="relative flex flex-col items-center gap-1">
@@ -46,7 +46,7 @@ const MobileNavigation = () => {
 
                   {/* Cart count badge */}
                   {isCart && cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-600 text-white text-[8px] font-bold flex items-center justify-center leading-none">
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-warm-600 text-white text-[8px] font-bold flex items-center justify-center leading-none">
                       {cartCount > 9 ? '9+' : cartCount}
                     </span>
                   )}

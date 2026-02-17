@@ -214,7 +214,7 @@ const Offers = () => {
                                                 'flex items-center justify-center gap-2 w-full md:w-auto md:px-8 h-12 rounded-xl font-bold text-sm transition-all duration-200',
                                                 addingId === hero.id
                                                     ? 'bg-green-600 text-white'
-                                                    : 'bg-stone-900 text-white hover:bg-red-700 hover:scale-[1.02] active:scale-[0.98]'
+                                                    : 'bg-stone-900 text-white hover:bg-warm-700 hover:scale-[1.02] active:scale-[0.98]'
                                             )}
                                         >
                                             {addingId === hero.id ? (
@@ -284,7 +284,7 @@ const Offers = () => {
                                                             'w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200',
                                                             addingId === item.id
                                                                 ? 'bg-green-600 text-white'
-                                                                : 'bg-stone-900 text-white hover:bg-red-700 hover:scale-110 active:scale-95'
+                                                                : 'bg-stone-900 text-white hover:bg-warm-700 hover:scale-110 active:scale-95'
                                                         )}
                                                     >
                                                         {addingId === item.id ? (

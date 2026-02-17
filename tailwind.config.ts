@@ -18,6 +18,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -62,32 +65,27 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				tomato: {
-					50: '#fff5f4',
-					100: '#ffe8e6',
-					200: '#ffd2cc',
-					300: '#ffada1',
-					400: '#ff7e6b',
-					500: '#ff6347', // Tomato Base
-					600: '#ef4a2e',
-					700: '#c93922',
-					800: '#a6301e',
-					900: '#8c2c1d',
-					DEFAULT: '#ff6347',
+				// Warm amber-brown accent palette (replaces bright-red)
+				warm: {
+					50: '#FDF8F0',
+					100: '#F9EDDA',
+					200: '#F2D9B5',
+					300: '#E8BF85',
+					400: '#D9A054',
+					500: '#C8882E',
+					600: '#A06B1E',
+					700: '#7D5318',
+					800: '#5E3F14',
+					900: '#3D2A0F',
+					DEFAULT: '#C8882E',
 				},
-				'bright-red': {
-					50: '#fff1f1',
-					100: '#ffdfdf',
-					200: '#ffc4c4',
-					300: '#ff9d9d',
-					400: '#ff6969',
-					500: '#ff0000', // Bright Red Base
-					600: '#d90000',
-					700: '#b30000',
-					800: '#8c0000',
-					900: '#660000',
-					DEFAULT: '#ff0000',
-				}
+				// Off-white/cream named shades
+				cream: {
+					DEFAULT: '#FAF8F5',
+					dark: '#F3EFE9',
+				},
+				ivory: '#FEFCF9',
+				linen: '#F5F0EB',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -96,25 +94,27 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
-				}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'fade-in': {
+					from: { opacity: '0', transform: 'translateY(8px)' },
+					to: { opacity: '1', transform: 'translateY(0)' }
+				},
+				'fade-in-up': {
+					from: { opacity: '0', transform: 'translateY(16px)' },
+					to: { opacity: '1', transform: 'translateY(0)' }
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out forwards',
+				'fade-in-up': 'fade-in-up 0.6s ease-out forwards',
 			}
 		}
 	},
