@@ -30,7 +30,7 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-bright-red-50">
+    <div className="min-h-screen bg-cream">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -56,7 +56,7 @@ const About = () => {
               Our name "Kurchi" comes from the Hindi word for chair, reflecting our roots and commitment
               to creating seating solutions that bring comfort and joy to Indian homes and offices.
             </p>
-            <Button size="lg" className="bg-bright-red-700 hover:bg-bright-red-800 text-white">
+            <Button size="lg" className="bg-warm-700 hover:bg-warm-800 text-white">
               Explore Our Collection
             </Button>
           </div>
@@ -76,7 +76,7 @@ const About = () => {
             {features.map((feature, index) => (
               <Card key={index} className="text-center p-6 hover:shadow-xl transition-shadow duration-300">
                 <CardContent className="pt-6">
-                  <feature.icon className="h-12 w-12 text-bright-red-700 mx-auto mb-4" />
+                  <feature.icon className="h-12 w-12 text-warm-600 mx-auto mb-4" />
                   <h3 className="font-semibold text-lg text-stone-900 mb-3">{feature.title}</h3>
                   <p className="text-stone-600">{feature.description}</p>
                 </CardContent>
@@ -110,10 +110,10 @@ const About = () => {
         </div>
 
         {/* Contact CTA */}
-        <div className="bg-gradient-to-r from-bright-red-700 to-bright-red-800 text-white rounded-2xl p-12 text-center shadow-xl">
+        <div className="bg-gradient-to-r from-warm-700 to-warm-800 text-white rounded-2xl p-12 text-center shadow-xl">
           <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Space?</h2>
           <p className="text-xl mb-8">Get in touch with us for personalized furniture solutions</p>
-          <Button size="lg" className="bg-white text-bright-red-700 hover:bg-stone-100 font-bold">
+          <Button size="lg" className="bg-white text-warm-700 hover:bg-stone-100 font-bold">
             Contact Us
           </Button>
         </div>

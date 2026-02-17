@@ -21,7 +21,7 @@ const Login = () => {
     const [gstNumber, setGstNumber] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isStaffView, setIsStaffView] = useState(false);
-    
+
     // --- NEW: Track Approval Screens ---
     const [viewStatus, setViewStatus] = useState<ApprovalStatus>('none');
 
@@ -151,11 +151,11 @@ const Login = () => {
 
     // --- NORMAL LOGIN VIEW ---
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-100 to-bright-red-50 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cream to-warm-50 p-4">
             <div className="w-full max-w-md">
                 <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
                     <CardHeader className="text-center pb-6">
-                        <div className={`mx-auto w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg mb-4 ${isStaffView ? 'bg-stone-900' : 'bg-gradient-to-r from-bright-red-600 to-bright-red-700'}`}>
+                        <div className={`mx-auto w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg mb-4 ${isStaffView ? 'bg-stone-900' : 'bg-gradient-to-r from-warm-600 to-warm-700'}`}>
                             {isStaffView ? <Shield className="h-8 w-8 text-white" /> : <User className="h-8 w-8 text-white" />}
                         </div>
                         <CardTitle className="text-2xl font-bold text-stone-800">
@@ -165,7 +165,7 @@ const Login = () => {
                             {isStaffView ? "Secure access for Managers & HQ" : "Sign in to access your account"}
                         </CardDescription>
                     </CardHeader>
-                    
+
                     <CardContent>
                         {isStaffView ? (
                             <div className="space-y-4">
@@ -178,8 +178,8 @@ const Login = () => {
                                         Use your Google account to request access. HQ will review your profile shortly.
                                     </p>
                                 </div>
-                                <Button 
-                                    onClick={() => handleLogin('admin')} 
+                                <Button
+                                    onClick={() => handleLogin('admin')}
                                     disabled={isLoading}
                                     className="w-full h-12 text-lg bg-stone-900 hover:bg-black"
                                 >
@@ -194,10 +194,10 @@ const Login = () => {
                                 </TabsList>
 
                                 <TabsContent value="customer" className="space-y-4">
-                                    <Button 
-                                        onClick={() => handleLogin('user')} 
+                                    <Button
+                                        onClick={() => handleLogin('user')}
                                         disabled={isLoading}
-                                        className="w-full h-12 text-lg bg-bright-red-600 hover:bg-bright-red-700"
+                                        className="w-full h-12 text-lg bg-warm-700 hover:bg-warm-800"
                                     >
                                         {isLoading ? 'Signing in...' : 'Sign in with Google'}
                                     </Button>
@@ -206,16 +206,16 @@ const Login = () => {
                                 <TabsContent value="business" className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="gst">GST Number</Label>
-                                        <Input 
-                                            id="gst" 
-                                            placeholder="Ex: 22AAAAA0000A1Z5" 
+                                        <Input
+                                            id="gst"
+                                            placeholder="Ex: 22AAAAA0000A1Z5"
                                             value={gstNumber}
                                             onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
                                         />
                                     </div>
-                                    <Button 
+                                    <Button
                                         onClick={() => handleLogin('business')}
-                                        disabled={isLoading} 
+                                        disabled={isLoading}
                                         className="w-full h-12 text-lg bg-blue-700 hover:bg-blue-800"
                                     >
                                         {isLoading ? 'Verifying...' : 'Verify & Sign in'}
@@ -226,8 +226,8 @@ const Login = () => {
                     </CardContent>
 
                     <CardFooter className="bg-stone-50/50 border-t flex justify-center py-4">
-                        <Button 
-                            variant="link" 
+                        <Button
+                            variant="link"
                             className="text-xs text-stone-500 hover:text-stone-900"
                             onClick={() => setIsStaffView(!isStaffView)}
                         >

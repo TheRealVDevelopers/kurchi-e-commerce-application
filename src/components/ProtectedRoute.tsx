@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     if (loading) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-stone-50">
-                <Loader2 className="w-8 h-8 animate-spin text-bright-red-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-warm-600" />
             </div>
         );
     }
@@ -41,7 +41,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
         // Standard role redirect fallback
         if (user.role === 'admin') return <Navigate to="/admin" replace />;
         if (user.role === 'superadmin') return <Navigate to="/super-admin" replace />;
-        
+
         return <Navigate to="/" replace />;
     }
 
