@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Package, TrendingUp, Shield, Trash2, Percent, ArrowRight, Activity, Truck, Settings, BarChart3, ShoppingBag,
-    Star, UserCheck, UserX, Briefcase
+    Star, UserCheck, UserX, Briefcase, UserPlus, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import Header from '@/components/Header';
 import MobileNavigation from '@/components/MobileNavigation';
 import { useApp, UserRole } from '@/context/AppContext';
 import { db } from '@/lib/firebase';
-import { collection, doc, updateDoc, deleteDoc, addDoc, onSnapshot, query, where, orderBy, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, addDoc, onSnapshot, query, where, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 interface Order {
@@ -48,6 +48,13 @@ const SuperAdmin = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [apiKeys, setApiKeys] = useState({ logisticsKey: '', mapKey: '' });
 
+    // Invite system state
+    const [invites, setInvites] = useState<any[]>([]);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteRole, setInviteRole] = useState<'admin' | 'superadmin'>('admin');
+    const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+    const [isInviting, setIsInviting] = useState(false);
+
     // Stats State
     const [stats, setStats] = useState<AnalyticsData>({
         totalRevenue: 0, lastMonthRevenue: 0, totalOrders: 0, activeOrders: 0,
@@ -60,36 +67,56 @@ const SuperAdmin = () => {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [offerPrice, setOfferPrice] = useState('');
 
-    // --- 1. DATA FETCHING (Runs ONCE) ---
+    // --- 1. DATA FETCHING (Runs when user is available) ---
     useEffect(() => {
-        // Products
-        const unsubProducts = onSnapshot(query(collection(db, 'products'), orderBy('createdAt', 'desc')), (snap) => {
-            setInventory(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
+        if (!user) return; // Don't fetch until authenticated
 
-        // Users (No ordering to ensure we get all legacy users too)
-        const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-            setAllUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
-        });
+        // Products
+        const unsubProducts = onSnapshot(
+            query(collection(db, 'products'), orderBy('createdAt', 'desc')),
+            (snap) => { setInventory(snap.docs.map(d => ({ id: d.id, ...d.data() }))); },
+            (err) => console.error('Products listener error:', err.message)
+        );
+
+        // Users
+        const unsubUsers = onSnapshot(
+            collection(db, 'users'),
+            (snap) => { setAllUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() }))); },
+            (err) => console.error('Users listener error:', err.message)
+        );
 
         // Requests
-        const unsubRequests = onSnapshot(query(collection(db, 'product_requests'), where('status', '==', 'pending')), (snap) => {
-            setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
+        const unsubRequests = onSnapshot(
+            query(collection(db, 'product_requests'), where('status', '==', 'pending')),
+            (snap) => { setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() }))); },
+            (err) => console.error('Requests listener error:', err.message)
+        );
 
         // Orders
-        const unsubOrders = onSnapshot(query(collection(db, 'orders'), orderBy('createdAt', 'desc')), (snap) => {
-            setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
-            setIsLoading(false);
-        });
+        const unsubOrders = onSnapshot(
+            query(collection(db, 'orders'), orderBy('createdAt', 'desc')),
+            (snap) => {
+                setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
+                setIsLoading(false);
+            },
+            (err) => console.error('Orders listener error:', err.message)
+        );
+
+        // Staff Invites
+        const unsubInvites = onSnapshot(
+            collection(db, 'staff_invites'),
+            (snap) => { setInvites(snap.docs.map(d => ({ id: d.id, ...d.data() }))); },
+            (err) => console.error('Invites listener error:', err.message)
+        );
 
         return () => {
             unsubProducts();
             unsubUsers();
             unsubRequests();
             unsubOrders();
+            unsubInvites();
         };
-    }, []); // <--- Dependency array is empty = Stable Connection
+    }, [user]);
 
     // --- 2. ANALYTICS CALCULATION (Runs when Data Changes) ---
     useEffect(() => {
@@ -187,6 +214,41 @@ const SuperAdmin = () => {
             toast.success(`Manager has been ${status}`);
         } catch (e) {
             toast.error("Failed to update status");
+        }
+    };
+
+    const handleInviteStaff = async () => {
+        const normalizedEmail = inviteEmail.trim().toLowerCase();
+        if (!normalizedEmail || !normalizedEmail.includes('@')) {
+            toast.error("Please enter a valid email address");
+            return;
+        }
+
+        setIsInviting(true);
+        try {
+            await setDoc(doc(db, 'staff_invites', normalizedEmail), {
+                email: normalizedEmail,
+                role: inviteRole,
+                invitedBy: user?.uid,
+                invitedAt: serverTimestamp()
+            });
+            toast.success(`Invitation sent to ${normalizedEmail}`);
+            setInviteEmail('');
+            setInviteRole('admin');
+            setIsInviteDialogOpen(false);
+        } catch (error) {
+            toast.error("Failed to send invitation");
+        } finally {
+            setIsInviting(false);
+        }
+    };
+
+    const handleDeleteInvite = async (email: string) => {
+        try {
+            await deleteDoc(doc(db, 'staff_invites', email));
+            toast.success("Invitation revoked");
+        } catch (error) {
+            toast.error("Failed to revoke invitation");
         }
     };
 
@@ -350,38 +412,95 @@ const SuperAdmin = () => {
                     {/* --- TAB 2: STAFF MANAGEMENT --- */}
                     <TabsContent value="staff">
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Staff Management</CardTitle>
-                                <CardDescription>Approve new managers and oversee staff access.</CardDescription>
+                            <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <div>
+                                    <CardTitle>Staff Management</CardTitle>
+                                    <CardDescription>Invite new staff and oversee team access.</CardDescription>
+                                </div>
+                                <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button className="bg-stone-900 hover:bg-black w-full sm:w-auto">
+                                            <UserPlus className="w-4 h-4 mr-2" /> Invite Staff
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader><DialogTitle>Invite New Staff Member</DialogTitle></DialogHeader>
+                                        <div className="py-4 space-y-4">
+                                            <div className="space-y-2">
+                                                <Label>Email Address</Label>
+                                                <Input
+                                                    type="email"
+                                                    placeholder="staff@example.com"
+                                                    value={inviteEmail}
+                                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Role</Label>
+                                                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as 'admin' | 'superadmin')}>
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="admin">Manager</SelectItem>
+                                                        <SelectItem value="superadmin">HQ (Super Admin)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="bg-stone-50 p-3 rounded-lg text-xs text-stone-500 border">
+                                                The invited person will need to create an account at <strong>/staff/login</strong> using this exact email.
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button onClick={handleInviteStaff} disabled={isInviting} className="bg-stone-900">
+                                                {isInviting ? 'Sending...' : 'Send Invitation'}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </CardHeader>
                             <CardContent className="space-y-8">
-                                {/* Pending Section */}
+                                {/* Staff Summary Cards */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <div className="p-4 bg-stone-50 rounded-lg border text-center">
+                                        <p className="text-2xl font-bold text-stone-900">{allUsers.filter(u => ['admin', 'superadmin'].includes(u.role) && u.status !== 'rejected').length}</p>
+                                        <p className="text-xs text-stone-500 mt-1">Active Staff</p>
+                                    </div>
+                                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 text-center">
+                                        <p className="text-2xl font-bold text-blue-700">{invites.length}</p>
+                                        <p className="text-xs text-stone-500 mt-1">Pending Invites</p>
+                                    </div>
+                                    <div className="p-4 bg-stone-50 rounded-lg border text-center">
+                                        <p className="text-2xl font-bold text-stone-900">{allUsers.filter(u => u.role === 'superadmin' && u.status !== 'rejected').length}</p>
+                                        <p className="text-xs text-stone-500 mt-1">HQ Members</p>
+                                    </div>
+                                    <div className="p-4 bg-stone-50 rounded-lg border text-center">
+                                        <p className="text-2xl font-bold text-stone-900">{allUsers.filter(u => u.role === 'admin' && u.status !== 'rejected').length}</p>
+                                        <p className="text-xs text-stone-500 mt-1">Managers</p>
+                                    </div>
+                                </div>
+
+                                {/* Pending Invites Section */}
                                 <div>
-                                    <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-4">Pending Approvals</h3>
-                                    {allUsers.filter(u => u.role === 'admin' && u.status === 'pending').length === 0 ? (
-                                        <div className="p-4 border border-dashed rounded-lg text-center text-stone-500">No pending requests</div>
+                                    <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-4">Pending Invites</h3>
+                                    {invites.length === 0 ? (
+                                        <div className="p-4 border border-dashed rounded-lg text-center text-stone-500">No pending invitations</div>
                                     ) : (
                                         <div className="space-y-3">
-                                            {allUsers.filter(u => u.role === 'admin' && u.status === 'pending').map(manager => (
-                                                <div key={manager.uid} className="flex flex-col sm:flex-row items-center justify-between p-4 border rounded-lg bg-yellow-50/50 border-yellow-100">
+                                            {invites.map(invite => (
+                                                <div key={invite.id} className="flex flex-col sm:flex-row items-center justify-between p-4 border rounded-lg bg-blue-50/50 border-blue-100">
                                                     <div className="flex items-center gap-4 mb-3 sm:mb-0">
-                                                        <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700 font-bold">
-                                                            {manager.name?.charAt(0)}
+                                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+                                                            <Mail className="w-5 h-5" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-stone-900">{manager.name}</p>
-                                                            <p className="text-xs text-stone-500">{manager.email}</p>
-                                                            <Badge variant="outline" className="mt-1 bg-white text-yellow-700 border-yellow-200">Awaiting Approval</Badge>
+                                                            <p className="font-bold text-stone-900">{invite.email}</p>
+                                                            <Badge variant="outline" className="mt-1 bg-white text-blue-700 border-blue-200">
+                                                                {invite.role === 'superadmin' ? 'HQ' : 'Manager'} — Awaiting Sign-Up
+                                                            </Badge>
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-2 w-full sm:w-auto">
-                                                        <Button size="sm" className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700" onClick={() => handleManagerStatus(manager.uid, 'active')}>
-                                                            <UserCheck className="w-4 h-4 mr-2" /> Approve
-                                                        </Button>
-                                                        <Button size="sm" variant="destructive" className="flex-1 sm:flex-none" onClick={() => handleManagerStatus(manager.uid, 'rejected')}>
-                                                            <UserX className="w-4 h-4 mr-2" /> Reject
-                                                        </Button>
-                                                    </div>
+                                                    <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={() => handleDeleteInvite(invite.id)}>
+                                                        <Trash2 className="w-4 h-4 mr-2" /> Revoke
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
@@ -404,8 +523,11 @@ const SuperAdmin = () => {
                                             </thead>
                                             <tbody className="divide-y">
                                                 {allUsers.filter(u => ['admin', 'superadmin'].includes(u.role) && u.status !== 'pending').map(staff => (
-                                                    <tr key={staff.uid} className="bg-white">
-                                                        <td className="px-4 py-3 font-medium">{staff.name}</td>
+                                                    <tr key={staff.uid} className={`bg-white ${staff.uid === user?.uid ? 'bg-stone-50/50' : ''}`}>
+                                                        <td className="px-4 py-3 font-medium">
+                                                            {staff.name}
+                                                            {staff.uid === user?.uid && <span className="text-xs text-stone-400 ml-2">(You)</span>}
+                                                        </td>
                                                         <td className="px-4 py-3 text-stone-500">{staff.email}</td>
                                                         <td className="px-4 py-3">
                                                             <Badge variant={staff.role === 'superadmin' ? 'default' : 'secondary'}>
@@ -418,11 +540,22 @@ const SuperAdmin = () => {
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-3 text-right">
-                                                            {staff.role !== 'superadmin' && (
-                                                                <Button variant="ghost" size="sm" onClick={() => handleManagerStatus(staff.uid, 'rejected')} className="text-red-600 hover:bg-red-50">
-                                                                    Revoke Access
-                                                                </Button>
-                                                            )}
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {staff.uid !== user?.uid && (
+                                                                    <Select defaultValue={staff.role} onValueChange={(val) => handleRoleChange(staff.uid, val as UserRole)}>
+                                                                        <SelectTrigger className="w-[110px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="admin">Manager</SelectItem>
+                                                                            <SelectItem value="superadmin">HQ</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                )}
+                                                                {staff.uid !== user?.uid && (
+                                                                    <Button variant="ghost" size="sm" onClick={() => handleManagerStatus(staff.uid, 'rejected')} className="text-red-600 hover:bg-red-50">
+                                                                        Revoke
+                                                                    </Button>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -487,31 +620,43 @@ const SuperAdmin = () => {
                     {/* --- TAB 4: USERS --- */}
                     <TabsContent value="users">
                         <Card>
-                            <CardHeader><CardTitle>User Role Management</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle>Customer Directory</CardTitle>
+                                <CardDescription>View all registered customers. Role changes are managed via the Staff tab.</CardDescription>
+                            </CardHeader>
                             <CardContent>
-                                <div className="space-y-2">
-                                    {allUsers.map((u) => (
-                                        <div key={u.uid} className="flex items-center justify-between p-3 border rounded hover:bg-stone-50">
-                                            <div>
-                                                <p className="font-medium">{u.name}</p>
-                                                <p className="text-xs text-stone-500">{u.email}</p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="outline">{u.role}</Badge>
-                                                {u.role !== 'superadmin' && (
-                                                    <Select onValueChange={(val) => handleRoleChange(u.uid, val as UserRole)}>
-                                                        <SelectTrigger className="w-[100px] h-8 text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="user">User</SelectItem>
-                                                            <SelectItem value="business">Business</SelectItem>
-                                                            <SelectItem value="admin">Manager</SelectItem>
-                                                            <SelectItem value="superadmin">HQ</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="border rounded-lg overflow-hidden">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-stone-50 border-b">
+                                            <tr>
+                                                <th className="px-4 py-3">Name</th>
+                                                <th className="px-4 py-3">Email</th>
+                                                <th className="px-4 py-3">Type</th>
+                                                <th className="px-4 py-3">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {allUsers.filter(u => ['user', 'business'].includes(u.role)).map((customer) => (
+                                                <tr key={customer.uid} className="bg-white hover:bg-stone-50">
+                                                    <td className="px-4 py-3 font-medium">{customer.name}</td>
+                                                    <td className="px-4 py-3 text-stone-500">{customer.email}</td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant={customer.role === 'business' ? 'default' : 'secondary'}>
+                                                            {customer.role === 'business' ? 'B2B' : 'Customer'}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                            {customer.status?.toUpperCase() || 'ACTIVE'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {allUsers.filter(u => ['user', 'business'].includes(u.role)).length === 0 && (
+                                                <tr><td colSpan={4} className="px-4 py-10 text-center text-stone-500">No customers registered yet</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </CardContent>
                         </Card>

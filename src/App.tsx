@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
+import StaffLogin from "./pages/StaffLogin";
 import { AppProvider } from "./context/AppContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext"; // <--- 1. IMPORT THIS
@@ -47,6 +48,7 @@ const App = () => (
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/wishlist" element={<Wishlist />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/staff/login" element={<StaffLogin />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/order-success" element={<OrderSuccess />} />
                   {/* 4. ADD TRACK ORDER ROUTE */}
@@ -55,7 +57,7 @@ const App = () => (
                   <Route
                     path="/admin"
                     element={
-                      <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                      <ProtectedRoute allowedRoles={['admin', 'superadmin']} staffRoute>
                         <Admin />
                       </ProtectedRoute>
                     }
@@ -63,7 +65,7 @@ const App = () => (
                   <Route
                     path="/super-admin"
                     element={
-                      <ProtectedRoute allowedRoles={['superadmin']}>
+                      <ProtectedRoute allowedRoles={['superadmin']} staffRoute>
                         <SuperAdmin />
                       </ProtectedRoute>
                     }
