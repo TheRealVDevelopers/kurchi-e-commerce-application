@@ -18,7 +18,7 @@ const OrderSuccess = () => {
             <Button variant="outline" className="w-full border-stone-300">View My Orders</Button>
           </Link>
           <Link to="/">
-            <Button className="w-full bg-bright-red-700 hover:bg-bright-red-800">Continue Shopping</Button>
+            <Button className="w-full bg-warm-700 hover:bg-warm-800">Continue Shopping</Button>
           </Link>
         </div>
       </div>
